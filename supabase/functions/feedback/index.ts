@@ -1,14 +1,15 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const allowedOrigins = new Set([
-  "https://zwxll.github.io",
+  "https://pdsmile.github.io/",
+  "https://pdsmile.github.io//china-travel/",
   "http://127.0.0.1:8765",
 ]);
 
 function corsHeaders(request: Request) {
   const origin = request.headers.get("Origin") || "";
   return {
-    "Access-Control-Allow-Origin": allowedOrigins.has(origin) ? origin : "https://zwxll.github.io",
+    "Access-Control-Allow-Origin": allowedOrigins.has(origin) ? origin : "https://pdsmile.github.io/",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",

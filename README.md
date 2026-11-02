@@ -17,10 +17,10 @@
 | [![中国地图、旅行统计与城市列表](docs/images/china-map.png)](docs/images/china-map.png) | [![按省份筛选的已点亮城市画廊](docs/images/city-gallery.png)](docs/images/city-gallery.png) |
 | 在地图上点亮城市，查看照片、视频和旅行统计。 | 按省份浏览城市封面、到访时间、标签与推荐指数。 |
 
-| 城市详情 | 景点旋转木马相册 |
+| 城市详情 | 徒步路线旋转木马相册 |
 | :---: | :---: |
-| [![城市详情中的旅行信息与景点卡片](docs/images/city-detail.png)](docs/images/city-detail.png) | [![景点照片的旋转木马浏览与视频切换](docs/images/attraction-carousel.png)](docs/images/attraction-carousel.png) |
-| 汇集游玩年月、推荐星级与景点记录，查看各景点的照片和视频。 | 用立体旋转木马浏览景点照片，支持拖动切换、缩放与照片/视频切换。 |
+| [![城市详情中的旅行信息与徒步路线卡片](docs/images/city-detail.png)](docs/images/city-detail.png) | [![路线照片的旋转木马浏览与视频切换](docs/images/attraction-carousel.png)](docs/images/attraction-carousel.png) |
+| 汇集徒步路线时间、推荐星级与路线记录，查看各条路线的照片和视频。 | 用立体旋转木马浏览路线照片，支持拖动切换、缩放与照片/视频切换。 |
 
 | 旅行轨迹 | 旅途影像 |
 | :---: | :---: |

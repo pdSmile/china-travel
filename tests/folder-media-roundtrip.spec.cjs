@@ -10,6 +10,14 @@ function productionFunction(name,next){
   assert.ok(start>=0&&end>start);
   return html.slice(start,end);
 }
+// 徒步路线归一化助手（难度枚举 → normalizeCityMeta），与生产代码同源切片
+function productionBlock(startMarker,endMarker){
+  const start=html.indexOf(startMarker);
+  const end=html.indexOf(endMarker,start);
+  assert.ok(start>=0&&end>start);
+  return html.slice(start,end);
+}
+const routeModel=productionBlock('  const ROUTE_DIFFICULTIES=','  // 时间与次数聚合：唯一权威来源');
 
 // Only the filesystem and browser database boundaries are substituted.
 // Real export/import functions run against fresh browser stores and a shared archive.
@@ -36,29 +44,41 @@ function harness(){
     setFolderStatus:()=>{},folderPermissionGranted:async()=>true,folderRoot:async()=> 'root',FOLDER_ROOT_NAME:'archive',
     clearLocalTravelData:async()=>{photos.length=0;metas.length=0;},
     putLocalMeta:async v=>metas.push(structuredClone(v)),addPhoto:async v=>{photos.push(structuredClone(v));return v.id;},
-    saveLocalProfileOnly:()=>{},localStorage:{setItem:()=>{}},refreshState:async()=>{},loadProfileToUI:()=>{},updateAccountUI:()=>{},
+    saveLocalProfileOnly:()=>{},localStorage:{setItem:()=>{},getItem:()=>null},refreshState:async()=>{},loadProfileToUI:()=>{},updateAccountUI:()=>{},
     toast:(msg,error)=>{if(error)errors.push(msg);},console:{error:()=>{}},cloudSuppressDirty:false
   };
   const helperStart=html.indexOf('  async function readFolderMedia(');
   const helper=helperStart<0?'':html.slice(helperStart,html.indexOf('  async function mirrorCityToFolder(',helperStart));
-  const functions=new Function(...Object.keys(deps),helper+
+  const functions=new Function(...Object.keys(deps),routeModel+helper+
     productionFunction('mirrorCityToFolder','mirrorAllToFolder')+
     productionFunction('restoreFromFolder','initDataFolder')+
     ';return {mirrorCityToFolder,restoreFromFolder};')(...Object.values(deps));
-  return {...functions,files,photos,metas,errors,info:async()=>JSON.parse(await files.get('root/2026/测试城市/info.json').text())};
+  return {...functions,files,dirs,photos,metas,errors,info:async()=>JSON.parse(await files.get('root/2026/测试城市/info.json').text())};
 }
 
 const poster='data:image/jpeg;base64,cG9zdGVy';
 function fixture(){
   const image={id:11,kind:'image',name:'same.jpg',dataUrl:poster,order:1};
   const video={id:42,kind:'video',name:'same.jpg',mime:'video/mp4',blob:new Blob(['original-video'],{type:'video/mp4'}),dataUrl:poster,duration:12,size:14,order:2};
-  return {image,video,meta:{attractions:[{id:'a',name:'景点',notes:'保留备注',photos:[image,video]}]}};
+  // 新结构：城市 → 徒步路线 → 徒步经历（日期 / 备注 / 照片）
+  return {image,video,meta:{birthMonth:'1995-06',attractions:[{
+    id:'a',name:'虎丘山径',
+    difficulty:'moderate',distanceKm:8.5,elevationGain:320,maxAltitude:480,
+    lng:120.5712,lat:31.3364,
+    visits:[{id:'v1',visitDate:'2026-05-18',notes:'保留备注',photos:[image,video]}]
+  }]}};
 }
+// 取某条路线第 0 次经历里的照片（测试读新结构）
+const visitPhotos=(meta,routeIdx=0,visitIdx=0)=>meta.attractions[routeIdx].visits[visitIdx].photos;
+// 整份替换某条经历的照片列表
+const setVisitPhotos=(meta,list,routeIdx=0,visitIdx=0)=>{
+  meta.attractions[routeIdx].visits[visitIdx].photos=list;
+};
 
 test('folder export retains attraction video source and poster instead of just a JPEG',async()=>{
   const h=harness(),{image,video,meta}=fixture();
   await h.mirrorCityToFolder('root','city',meta,[image,video]);
-  const info=await h.info(),entry=info.attractions[0].photos[1];
+  const info=await h.info(),entry=info.attractions[0].visits[0].photos[1];
   assert.equal(entry.kind,'video');
   assert.equal(entry.file,'videos/002-42.mp4');
   assert.equal(entry.poster,'videos/002-42.jpg');
@@ -72,20 +92,20 @@ test('a fresh browser restores playable attraction videos without changing city 
   assert.deepEqual(h.errors,[]);
   assert.equal(h.photos.filter(p=>p.kind==='image').length,1);
   assert.equal(h.photos.filter(p=>p.kind==='video').length,1);
-  const entries=h.metas[0].attractions[0].photos;
+  const entries=visitPhotos(h.metas[0]);
   assert.equal(entries[0].kind,'image');
   assert.equal(entries[1].kind,'video');
   assert.equal(await entries[1].blob.text(),'original-video');
   assert.equal(entries[1].dataUrl,poster);
   assert.equal(entries[1].duration,12);
-  assert.equal(h.metas[0].attractions[0].notes,'保留备注');
+  assert.equal(h.metas[0].attractions[0].visits[0].notes,'保留备注');
 });
 
 test('legacy attraction posters recover videos by media ID, not matching name or poster',async()=>{
   const h=harness(),{image,video,meta}=fixture();
   await h.mirrorCityToFolder('root','city',meta,[image,video]);
   const info=await h.info();
-  info.attractions[0].photos=[
+  info.attractions[0].visits[0].photos=[
     {id:11,name:'same.jpg',file:'photos/001-11.jpg'},
     {id:'42',name:'same.jpg',file:'legacy.jpg'},
     {name:'same.jpg',file:'legacy.jpg'}
@@ -94,7 +114,7 @@ test('legacy attraction posters recover videos by media ID, not matching name or
   h.files.set('root/2026/测试城市/info.json',new Blob([JSON.stringify(info)]));
   await h.restoreFromFolder({silent:true});
   assert.deepEqual(h.errors,[]);
-  const entries=h.metas[0].attractions[0].photos;
+  const entries=visitPhotos(h.metas[0]);
   assert.equal(entries[0].kind,'image');
   assert.equal(entries[1].kind,'video');
   assert.equal(await entries[1].blob.text(),'original-video');
@@ -104,11 +124,11 @@ test('legacy attraction posters recover videos by media ID, not matching name or
 
 test('attraction-only video exports its original blob even when absent from city album',async()=>{
   const h=harness(),{video,meta}=fixture();
-  meta.attractions[0].photos=[video];
+  setVisitPhotos(meta,[video]);
   await h.mirrorCityToFolder('root','city',meta,[]);
   await h.restoreFromFolder({silent:true});
   assert.deepEqual(h.errors,[]);
-  const restored=h.metas[0].attractions[0].photos[0];
+  const restored=visitPhotos(h.metas[0])[0];
   assert.equal(restored.kind,'video');
   assert.equal(await restored.blob.text(),'original-video');
   assert.equal(h.photos.length,0);
@@ -119,7 +139,103 @@ test('missing video sources remain videos and produce a visible recovery warning
   await h.mirrorCityToFolder('root','city',meta,[image,video]);
   h.files.delete('root/2026/测试城市/videos/002-42.mp4');
   await h.restoreFromFolder({silent:true});
-  assert.equal(h.metas[0].attractions[0].photos[1].kind,'video');
-  assert.equal(h.metas[0].attractions[0].photos[1].blob,undefined);
+  assert.equal(visitPhotos(h.metas[0])[1].kind,'video');
+  assert.equal(visitPhotos(h.metas[0])[1].blob,undefined);
   assert.ok(h.errors.some(message=>message.includes('缺失')));
+});
+
+test('folder export keeps the hiking route fields and the hometown birth month',async()=>{
+  const h=harness(),{image,meta}=fixture();
+  await h.mirrorCityToFolder('root','city',meta,[image]);
+  const info=await h.info();
+  assert.equal(info.birthMonth,'1995-06');
+  const route=info.attractions[0];
+  assert.equal(route.name,'虎丘山径');
+  assert.equal(route.difficulty,'moderate');
+  assert.equal(route.distanceKm,8.5);
+  assert.equal(route.elevationGain,320);
+  assert.equal(route.maxAltitude,480);
+  assert.equal(route.lng,120.5712);
+  assert.equal(route.lat,31.3364);
+  // 经历级字段落在 visits[] 里
+  assert.equal(route.visits.length,1);
+  assert.equal(route.visits[0].visitDate,'2026-05-18');
+  assert.equal(route.visits[0].notes,'保留备注');
+  assert.equal(route.visitDate,undefined,'路线级不应再有 visitDate');
+  assert.equal(route.notes,undefined,'路线级不应再有 notes');
+  await h.restoreFromFolder({silent:true});
+  assert.deepEqual(h.errors,[]);
+  const restored=h.metas[0].attractions[0];
+  assert.equal(restored.difficulty,'moderate');
+  assert.equal(restored.distanceKm,8.5);
+  assert.equal(restored.elevationGain,320);
+  assert.equal(restored.maxAltitude,480);
+  assert.equal(restored.lng,120.5712);
+  assert.equal(restored.lat,31.3364);
+  assert.equal(restored.visits[0].visitDate,'2026-05-18');
+  assert.equal(restored.visits[0].notes,'保留备注');
+  assert.equal(h.metas[0].birthMonth,'1995-06');
+});
+
+test('route-only photos are exported under the new 徒步路线 directory',async()=>{
+  const h=harness(),{image,meta}=fixture();
+  setVisitPhotos(meta,[image]);
+  await h.mirrorCityToFolder('root','city',meta,[]);
+  const info=await h.info();
+  assert.equal(info.attractions[0].visits[0].photos[0].file,'徒步路线/01-虎丘山径/01-001.jpg');
+  assert.ok(h.files.has('root/2026/测试城市/徒步路线/01-虎丘山径/01-001.jpg'));
+  assert.equal(h.dirs.has('root/2026/测试城市/景点'),false);
+});
+
+test('photos of a second experience get their own file prefix',async()=>{
+  const h=harness(),{image,meta}=fixture();
+  meta.attractions[0].visits.push({id:'v2',visitDate:'2026-08-02',notes:'第二次',photos:[{...image}]});
+  await h.mirrorCityToFolder('root','city',meta,[]);
+  const info=await h.info();
+  assert.equal(info.attractions[0].visits[1].photos[0].file,'徒步路线/01-虎丘山径/02-001.jpg');
+  assert.ok(h.files.has('root/2026/测试城市/徒步路线/01-虎丘山径/02-001.jpg'));
+});
+
+test('a legacy 景点 directory is still readable after the rename',async()=>{
+  const h=harness(),{image,meta}=fixture();
+  setVisitPhotos(meta,[image]);
+  await h.mirrorCityToFolder('root','city',meta,[]);
+  const info=await h.info();
+  info.attractions[0].visits[0].photos[0].file='景点/01-虎丘山径/01-001.jpg';
+  h.files.set('root/2026/测试城市/info.json',new Blob([JSON.stringify(info)]));
+  h.files.set('root/2026/测试城市/景点/01-虎丘山径/01-001.jpg',h.files.get('root/2026/测试城市/徒步路线/01-虎丘山径/01-001.jpg'));
+  h.dirs.delete('root/2026/测试城市/徒步路线');
+  h.dirs.delete('root/2026/测试城市/徒步路线/01-虎丘山径');
+  h.dirs.add('root/2026/测试城市/景点');
+  h.dirs.add('root/2026/测试城市/景点/01-虎丘山径');
+  await h.restoreFromFolder({silent:true});
+  assert.deepEqual(h.errors,[]);
+  const restored=visitPhotos(h.metas[0])[0];
+  assert.equal(restored.kind,'image');
+  assert.equal(restored.dataUrl,poster);
+});
+
+test('a legacy info.json restores with default route fields and keeps its notes',async()=>{
+  const h=harness(),{image,meta}=fixture();
+  await h.mirrorCityToFolder('root','city',meta,[image]);
+  const info=await h.info();
+  // 旧结构：路线上直接挂着 notes / photos
+  info.attractions=[{id:'b',name:'旧路线',notes:'保留备注',photos:[]}];
+  delete info.birthMonth;
+  h.files.set('root/2026/测试城市/info.json',new Blob([JSON.stringify(info)]));
+  await h.restoreFromFolder({silent:true});
+  assert.deepEqual(h.errors,[]);
+  const route=h.metas[0].attractions[0];
+  assert.equal(route.name,'旧路线');
+  assert.equal(route.difficulty,'');
+  assert.equal(route.distanceKm,0);
+  assert.equal(route.elevationGain,0);
+  assert.equal(route.maxAltitude,0);
+  assert.equal(route.lng,null);
+  assert.equal(route.lat,null);
+  // 旧记录迁移成一条经历：备注不丢
+  assert.equal(route.visits.length,1);
+  assert.equal(route.visits[0].notes,'保留备注');
+  assert.equal(route.visits[0].visitDate,'');
+  assert.equal(route.notes,undefined,'旧字段应被清掉');
 });

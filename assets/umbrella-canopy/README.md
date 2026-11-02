@@ -7,7 +7,7 @@ https://github.com/HaichaoLihc/visual-experience-demo/tree/main/experiences/umbr
 vendor/ 是原站同版本 Three.js / OrbitControls，保留其源码内版权信息。
 原仓库根目录未发现独立 LICENSE 文件；不自行宣称该场景具有 MIT 授权。再次公开分发前请核对原作者授权。
 
-照片只读取现有城市相册，与年轮照片共用 TravelImageAtlas.collect；排除视频，不增加景点或封面照片，不重复读取跨次到访城市。
+照片只读取现有城市相册，与年轮照片共用 TravelImageAtlas.collect；排除视频，不增加路线或封面照片，不重复读取跨次到访城市。
 临时缩略图最长边 768px，不修改原图，不写入数据库。没有照片时显示提示。
 
 使用：双击项目 index.html → 旅途影像 → 右上角「伞幕照片」。不需要服务器。
