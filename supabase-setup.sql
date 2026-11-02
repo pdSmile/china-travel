@@ -86,6 +86,9 @@ using (
 
 -- ===== 公开城市点评（游客点评）=====
 -- 每个用户对每个城市最多一条主点评，userId + cityKey 唯一
+-- attractions jsonb 存「徒步路线」数组；物理键名沿用 attractions，不再改动表结构。
+-- 新版元素是对象 {name,difficulty,distanceKm,elevationGain,maxAltitude,visitDate}，旧数据是字符串数组，读取端两种形状都要兼容。
+-- visit_month 语义已从「游玩年月」变为「最近一条徒步路线的时间(YYYY-MM)」，列名保持不变。
 create table if not exists public.city_reviews (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -174,6 +177,8 @@ revoke all on public.user_feedback from authenticated;
 -- 每个用户一行个人公开资料。开启「公开我的资料信息」后写入 is_public=true；
 -- 他人（含游客）点击点评头像时据此读取该用户的公开昵称/头像/家乡资料。
 -- 邮箱、照片、账号登录信息不进入此表，永不对外公开。
+-- birth_month 是家乡的出生年月(YYYY-MM)，与徒步路线完全解耦。
+-- attractions jsonb 存家乡的徒步路线数组，结构与 city_reviews.attractions 一致。
 create table if not exists public.public_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   nickname text not null default '旅行者',

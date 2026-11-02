@@ -171,8 +171,8 @@
   body.light-theme .map-search .input,body.light-theme .map-search #search-icon,
   body.light-theme .map-search-results,body.light-theme .modal-head,body.light-theme .icon-btn,
   body.light-theme .thumb,body.light-theme .empty,body.light-theme .view-tab.active,
-  body.light-theme .city-card-thumb,body.light-theme .month-picker,
-  body.light-theme .month-picker input[type=month],body.light-theme .tag-add-row input[type=text],
+  body.light-theme .city-card-thumb,body.light-theme .birth-month-field,
+  body.light-theme .birth-month-field input[type=month],body.light-theme .tag-add-row input[type=text],
   body.light-theme .tag-add-row select,body.light-theme .timeline-empty,body.light-theme .timeline-modal,
   body.light-theme .grid-card,body.light-theme .cover-section,body.light-theme .cover-preview-wrap,
   body.light-theme .attraction-item,body.light-theme .attraction-name-input,
@@ -199,7 +199,7 @@
   body.light-theme .province-map-card-name{color:#1f2a37;}
   body.light-theme .province-map-card-rating{color:#d97a1f;}
   body.light-theme .province-map-card-intro{color:#7a8694;}
-  body.light-theme .province-focus-more{background:rgba(255,255,255,.94);color:var(--accent-d);border-color:rgba(232,148,60,.45);}
+  body.light-theme .province-map-card--visit .province-map-card-date{color:#7a8694;}
   /* 地图卡片连线：两主题统一青蓝（对齐提交版地图配色）*/
   /* 全屏城市卡片视图（"全部"展开）：整页容器/筛选胶囊/视图切换轨道 */
   body.light-theme.fullscreen-grid .dash-panel{background:#f0f2f5;}
@@ -883,11 +883,16 @@
   .province-map-card-intro{
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;font-size:10px;line-height:1.25;
   }
-  .province-focus-more{
-    position:absolute;left:50%;bottom:20px;transform:translateX(-50%);padding:7px 12px;
-    border:1px solid rgba(125,211,252,.24);border-radius:var(--radius-pill);
-    background:rgba(5,10,16,.92);color:#bae6fd;font-size:11px;font-weight:700;
-    box-shadow:0 8px 24px rgba(0,0,0,.42);
+  /* 省份聚焦·经历卡：路线名 / 难度徽章 / 时间 三行叠放（尺寸沿用基础卡的 154×70） */
+  .province-map-card--visit .province-map-card-copy{gap:1px;justify-content:center;}
+  .province-map-card--visit .province-map-card-name{font-size:13px;line-height:1.15;}
+  .province-map-card--visit .province-map-card-badge{display:block;line-height:0;overflow:hidden;}
+  .province-map-card--visit .province-map-card-badge .route-difficulty-badge{
+    font-size:9px;padding:1px 7px;line-height:1.35;letter-spacing:.3px;
+  }
+  .province-map-card--visit .province-map-card-date{
+    color:#94a3b8;font-size:10px;line-height:1.2;font-variant-numeric:tabular-nums;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   @keyframes provinceCardIn{from{opacity:0;transform:translateY(7px) scale(.96)}to{opacity:1;transform:none}}
   body.fullscreen-grid .province-focus-layer{display:none;}
@@ -2405,6 +2410,10 @@
     .panel-collapse-toggle-right{right:0;top:58%;}
     .province-map-card{width:128px;height:58px;grid-template-columns:52px 1fr;}
     .province-map-card-image,.province-map-card-image-empty{width:52px;height:58px;}
+    /* 经历卡在窄屏塞三行中文偏挤 → 缩小字号与徽章 */
+    .province-map-card--visit .province-map-card-name{font-size:12px;}
+    .province-map-card--visit .province-map-card-date{font-size:9px;}
+    .province-map-card--visit .province-map-card-badge .route-difficulty-badge{font-size:8px;padding:1px 5px;}
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -2569,7 +2578,7 @@
     position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;
   }
   /* 卡片内容元素提升至流星层之上，确保图文、星级、标签清晰可见 */
-  .city-card>.city-card-head,.city-card>.city-card-thumbs,.city-card>.city-card-tags,
+  .city-card>.city-card-head,.city-card>.city-card-routes,.city-card>.city-card-thumbs,.city-card>.city-card-tags,
   .grid-card>.fs-hero,.grid-card>.grid-card-body{
     position:relative;z-index:1;
   }
@@ -2634,10 +2643,13 @@
     100%{--bglow-angle:360deg;opacity:0;}
   }
   .city-card-head{
-    display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:12px;
+    display:flex;align-items:center;justify-content:flex-start;gap:8px;margin-bottom:12px;
   }
-  .city-card-name{font-size:16px;font-weight:800;color:var(--ink);text-shadow:0 0 8px rgba(248,250,252,.25);}  /* 【提亮】城市卡片名称发光 */
-  .city-card-date{font-size:13.5px;color:var(--muted);white-space:nowrap;font-weight:500;}
+  /* 城市名：小号灰标签（弱化），不再发光 */
+  .city-card-name{
+    font-size:13px;font-weight:600;color:var(--muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  }
   /* ===== 卡片缩略图容器：3D 漂浮透视效果核心区域 ===== */
   /* preserve-3d 让子元素在 3D 空间中变换；悬浮时整体倾斜漂浮 */
   .city-card-thumbs{
@@ -2681,6 +2693,31 @@
   /* 标签行：不参与 3D 变换，保持清晰可读 */
   .city-card-tags{display:flex;flex-wrap:wrap;gap:6px;}
   .city-card-tags:empty{display:none;}
+  /* ===== 卡内徒步路线列表（只读行，两行制）=====
+     第一行：路线名（左）+ 日期·次数（右）
+     第二行：爬升 · 距离（两项都缺时整行不渲染，不留空行） */
+  /* 【注意】不复用 .route-metrics / .route-coord —— 它们是白字，为深色沉浸详情页设计，
+     浅色主题下本卡片是 var(--card) 白底，白字会看不见 */
+  .city-card-routes{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+  .city-card-routes:empty{display:none;}
+  .city-card-route{
+    display:flex;flex-direction:column;align-items:stretch;gap:2px;
+    padding:7px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);
+    background:var(--line-2);
+  }
+  /* 第一行：名称（左，可省略号截断） + 日期·次数（右，不被挤掉） */
+  .city-card-route-top{display:flex;align-items:baseline;gap:8px;min-width:0;}
+  .city-card-route-name{
+    font-size:13px;font-weight:700;color:var(--ink);
+    flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .city-card-route-time{
+    font-size:11.5px;color:var(--muted);
+    flex:0 0 auto;margin-left:auto;white-space:nowrap;
+  }
+  /* 第二行：爬升 · 距离（缺任一项则整行不渲染，不会出现空行） */
+  .city-card-route-meta{font-size:11.5px;color:var(--muted);white-space:nowrap;}
+  .city-card-route-more{font-size:11.5px;color:var(--muted);}
   /* 空态提示 */
   .city-cards-empty{
     text-align:center;font-size:14px;color:var(--muted);line-height:1.7;
@@ -2697,26 +2734,17 @@
   .tag-pill.scenic{background:rgba(46,125,50,.1);color:#2e7d32;}
   .tag-pill.food{background:rgba(232,148,60,.12);color:var(--accent-d);}
   .tag-pill.other{background:rgba(61,127,184,.1);color:var(--blue-d);}
-  /* 年月选择器行 */
-  /* 【弹窗尺寸放大】年月行水平 18→22px，垂直 10→11px，与各模块统一 */
-  .month-picker{
-    display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;
+  /* 家乡出生年月行 */
+  .birth-month-field{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
     padding:11px 22px;border-bottom:1px solid var(--line);background:#080808;flex:0 0 auto;
   }
-  .month-picker>label{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;padding-top:7px;}
-  .month-entries{display:flex;flex:1 1 280px;min-width:220px;flex-direction:column;gap:7px;}
-  .month-entry{display:flex;align-items:center;gap:7px;min-width:0;}
-  .month-entry-index{width:42px;flex:0 0 42px;font-size:11px;color:var(--muted);text-align:right;}
-  .month-picker input[type=month]{
+  .birth-month-field[hidden]{display:none;}
+  .birth-month-field>label{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .birth-month-field input[type=month]{
     width:150px;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-size:13px;color:var(--ink);background:#080808;
   }
-  .month-picker .btn{padding:6px 12px;font-size:12px;}
-  .month-remove-btn{
-    width:28px;height:28px;padding:0;border:1px solid rgba(248,113,113,.25);border-radius:7px;
-    background:rgba(127,29,29,.14);color:#fca5a5;font-size:16px;line-height:1;cursor:pointer;
-  }
-  .month-remove-btn:hover{border-color:rgba(248,113,113,.55);background:rgba(127,29,29,.24);}
-  .month-add-btn{color:var(--accent-d);border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.08);}
+  .birth-month-field .btn{padding:6px 12px;font-size:12px;}
   .att-info-value.is-multi-month{font-size:14px;line-height:1.45;text-align:center;}
   /* 标签管理区 —— 放大间距与字号 */
   /* 【弹窗尺寸放大】标签区上间距 16→18px，与景点区一致，三个模块分隔均匀 */
@@ -3504,12 +3532,38 @@
     margin-bottom:6px;
     text-shadow:0 1px 6px rgba(0,0,0,.85);
   }
+  /* 路线卡片上的难度徽章容器 */
+  .att-card-badge{margin:2px 0 6px;}
+  .att-card .route-metrics{color:rgba(245,240,230,.72);text-shadow:0 1px 6px rgba(0,0,0,.85);margin-bottom:4px;}
+  .att-card .route-coord{color:rgba(245,240,230,.5);text-shadow:0 1px 6px rgba(0,0,0,.85);}
   .att-card-notes{
     font-size:15px;font-weight:500;color:rgba(245,240,230,.88);line-height:1.5;
     overflow:hidden;text-overflow:ellipsis;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
     text-shadow:0 1px 6px rgba(0,0,0,.85);
   }
+  /* 路线卡内的徒步经历列表（详情页是深色沉浸底板，沿用 att-card-* 的半透白口径） */
+  .att-card-visits{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+  .att-card-visit{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:7px 10px;border-radius:10px;
+    background:rgba(8,12,18,.42);border:1px solid rgba(255,255,255,.10);
+  }
+  .att-card-visit-date{
+    font-size:12.5px;font-weight:600;color:rgba(245,240,230,.92);
+    white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,.85);
+  }
+  .att-card-visit-notes{
+    flex:1 1 120px;min-width:0;font-size:12.5px;color:rgba(245,240,230,.66);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    text-shadow:0 1px 6px rgba(0,0,0,.85);
+  }
+  .att-card-visit-media{font-size:11.5px;color:rgba(245,240,230,.52);white-space:nowrap;}
+  .att-card-visit-btn{
+    flex:0 0 auto;padding:4px 10px;border-radius:8px;font-size:11.5px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:rgba(245,240,230,.86);
+  }
+  .att-card-visit-btn:hover{border-color:rgba(125,211,252,.7);color:#bfe4ff;}
   /* 景点网格上方操作提示：单击编辑 / 双击看照片（独立行，不参与网格布局） */
   .att-grid-hint{
     width:100%;
@@ -3536,45 +3590,154 @@
   .att-detail-empty .big{font-size:18px;font-weight:600;display:block;margin-bottom:8px;color:rgba(255,255,255,.75);}
   .att-detail-empty .sub{font-size:14px;}
 
-  /* ===== 景点编辑浮层（单击卡片弹出，深色玻璃，字段与原景点管理一致）===== */
+  /* ===== 徒步路线编辑浮层（主题自适应：面板质感完全照搬 .modal）===== */
   .att-edit-overlay{
     position:fixed;inset:0;z-index:10020;display:none;
     align-items:center;justify-content:center;padding:24px;
-    background:rgba(6,8,12,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    background:rgba(20,28,38,.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
   }
+  body.light-theme .att-edit-overlay{background:rgba(31,42,55,.28);}
   .att-edit-overlay.show{display:flex;animation:attFadeIn .25s ease;}
   .att-edit-panel{
-    width:min(560px,100%);max-height:84vh;overflow-y:auto;
-    background:rgba(16,20,26,.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-    border:1px solid rgba(255,255,255,.14);border-radius:20px;
-    box-shadow:0 20px 60px rgba(0,0,0,.5);
-    padding:28px;
+    width:min(560px,100%);max-height:84vh;display:flex;flex-direction:column;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;contain:layout style;
     animation:attCardIn .35s cubic-bezier(.2,.8,.3,1);
   }
   @keyframes attCardIn{from{transform:scale(.96) translateY(10px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
-  .att-edit-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
-  .att-edit-title .x{width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);cursor:pointer;font-size:16px;}
-  .att-edit-title .x:hover{background:rgba(255,255,255,.18);color:#fff;}
-  .att-edit-row{margin-bottom:16px;}
-  .att-edit-row label{display:block;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:1px;}
-  .att-edit-row input,.att-edit-row textarea{
-    width:100%;padding:10px 14px;border-radius:10px;
-    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
-    color:#fff;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;
+  .att-edit-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:14px 22px;border-bottom:1px solid var(--line);
+    background:linear-gradient(135deg,#080808,#080808);flex:0 0 auto;
   }
-  .att-edit-row input:focus,.att-edit-row textarea:focus{border-color:rgba(232,192,104,.5);}
+  body.light-theme .att-edit-head{background:linear-gradient(135deg,#fff8f0,#ffffff);}
+  .att-edit-title{display:flex;align-items:center;gap:8px;min-width:0;}
+  .att-edit-title .pin-sm{color:var(--accent);flex:0 0 auto;}
+  .att-edit-title h2{margin:0;font-size:17px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .att-edit-body{padding:22px;overflow-y:auto;flex:1 1 auto;}
+  .att-edit-row{margin-bottom:16px;}
+  .att-edit-row label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;}
+  .att-edit-row input,.att-edit-row textarea,.att-edit-row select{
+    width:100%;padding:10px 14px;border-radius:var(--radius-sm);
+    background:var(--line-2);border:1px solid var(--line);
+    color:var(--ink);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;
+  }
+  body.light-theme .att-edit-row input,
+  body.light-theme .att-edit-row textarea,
+  body.light-theme .att-edit-row select{background:#ffffff;}
+  .att-edit-row input:focus,.att-edit-row textarea:focus,.att-edit-row select:focus{border-color:var(--accent);}
   .att-edit-row textarea{min-height:64px;resize:vertical;line-height:1.6;}
+  .att-edit-row select option{background:var(--card);color:var(--ink);}
   .att-edit-thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;}
-  .att-edit-thumb{position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.12);cursor:grab;}
+  .att-edit-thumb{position:relative;width:72px;height:72px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--line);cursor:grab;}
   .att-edit-thumb:active{cursor:grabbing;}
   .att-edit-thumb img{width:100%;height:100%;object-fit:cover;pointer-events:none;}
   .att-edit-thumb .del{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(0,0,0,.65);color:#fff;font-size:13px;cursor:pointer;line-height:1;display:grid;place-items:center;}
   /* 拖拽交换位置视觉反馈 */
   .att-edit-thumb.dragging{opacity:.4;}
-  .att-edit-thumb.drag-over{outline:2px solid #38bdf8;outline-offset:2px;}
-  .att-edit-upload{width:72px;height:72px;border-radius:10px;border:1px dashed rgba(255,255,255,.25);background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);cursor:pointer;display:grid;place-items:center;font-size:24px;transition:.2s;}
-  .att-edit-upload:hover{border-color:rgba(232,192,104,.5);color:rgba(232,192,104,.9);}
-  .att-edit-hint{font-size:12px;color:rgba(255,255,255,.4);margin-top:10px;}
+  .att-edit-thumb.drag-over{outline:2px solid var(--accent);outline-offset:2px;}
+  .att-edit-upload{width:72px;height:72px;border-radius:var(--radius-sm);border:1px dashed var(--line);background:var(--line-2);color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:24px;transition:.2s;}
+  .att-edit-upload:hover{border-color:var(--accent);color:var(--accent);}
+  .att-edit-hint{font-size:12px;color:var(--muted);margin-top:10px;}
+  /* ===== 徒步路线：难度徽章 / 指标行 / 坐标行 / 编辑器网格 ===== */
+  .route-difficulty-badge{
+    display:inline-block;padding:2px 9px;border-radius:999px;
+    font-size:11px;font-weight:700;letter-spacing:.5px;line-height:1.6;
+    border:1px solid currentColor;
+  }
+  .route-difficulty-badge[data-difficulty=easy]{color:#4ade80;background:rgba(74,222,128,.12);}
+  .route-difficulty-badge[data-difficulty=moderate]{color:#38bdf8;background:rgba(56,189,248,.12);}
+  .route-difficulty-badge[data-difficulty=hard]{color:#fb923c;background:rgba(251,146,60,.12);}
+  .route-difficulty-badge[data-difficulty=extreme]{color:#f87171;background:rgba(248,113,113,.12);}
+  .route-difficulty-badge[data-difficulty=ultimate]{color:#c084fc;background:rgba(192,132,252,.12);}
+  .route-metrics{font-size:12px;color:rgba(255,255,255,.62);line-height:1.6;}
+  .route-coord{font-size:11px;color:rgba(255,255,255,.42);font-variant-numeric:tabular-nums;}
+  /* 编辑器数值网格 */
+  .route-edit-grid-inner{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;}
+  .route-edit-field span{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:.5px;}
+  /* 城市弹窗内的紧凑摘要行 */
+  .route-summary{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;
+    border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);margin-bottom:10px;}
+  .route-summary-main{flex:1 1 auto;min-width:0;}
+  .route-summary-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+  .route-summary-name{font-size:14px;font-weight:600;color:var(--ink);}
+  .route-summary-name.is-empty{color:var(--muted);font-weight:500;}
+  .route-summary-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .route-summary-thumb{width:42px;height:42px;border-radius:8px;overflow:hidden;border:1px solid var(--line);cursor:pointer;}
+  .route-summary-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .route-summary-actions{display:flex;gap:6px;flex:0 0 auto;}
+  .route-summary-btn{padding:5px 11px;border-radius:8px;font-size:12px;cursor:pointer;
+    border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);}
+  .route-summary-btn:hover{border-color:rgba(232,192,104,.45);color:#e8c068;}
+  .route-summary-del:hover{border-color:rgba(248,113,113,.5);color:#fca5a5;}
+  /* 城市弹窗内的路线空状态（比详情页更紧凑） */
+  .route-list-empty{padding:18px 12px;text-align:center;color:var(--muted);}
+  .route-list-empty .big{font-size:14px;font-weight:600;display:block;margin-bottom:4px;color:var(--ink);}
+  .route-list-empty .sub{font-size:12px;}
+
+  /* ===== 城市弹窗内的徒步路线卡（路线级字段就地编辑 + 经历列表）===== */
+  .route-card{
+    padding:12px 14px;margin-bottom:10px;
+    border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--card);box-shadow:var(--shadow);
+  }
+  .route-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .route-card-title{font-size:14px;font-weight:700;color:var(--ink);}
+  .route-card-badge{flex:0 0 auto;}
+  .route-card-metrics{font-size:12px;color:var(--muted);}
+  .route-card-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+  .route-card-row>label{flex:0 0 62px;font-size:12.5px;font-weight:600;color:var(--muted);}
+  .route-card-grid{flex:1 1 auto;display:flex;gap:8px;flex-wrap:wrap;min-width:0;}
+  .route-card-input{
+    flex:1 1 120px;min-width:0;padding:7px 10px;
+    border:1px solid var(--line);border-radius:var(--radius-sm);
+    background:var(--line-2);color:var(--ink);
+    font:inherit;font-size:13px;transition:border-color .2s ease;
+  }
+  .route-card-input:focus{outline:none;border-color:var(--accent);}
+  .route-card-input option{background:var(--card);color:var(--ink);}
+  .route-card-hint{flex:1 1 100%;font-size:11.5px;color:var(--muted);line-height:1.5;}
+  /* 路线数据三指标：每个框配一个常驻小标签（填了值标签也不会消失） */
+  .route-metric-field{display:flex;flex-direction:column;gap:4px;flex:1 1 120px;min-width:112px;}
+  .route-metric-field>.route-card-input{flex:0 0 auto;width:100%;}
+  .route-metric-label{font-size:11px;font-weight:600;color:var(--muted);line-height:1.2;}
+  .route-card-visits{
+    margin:10px 0 8px;padding:8px 12px;
+    border:1px dashed var(--line);border-radius:10px;background:rgba(255,255,255,.02);
+  }
+  .route-card-visit{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:7px 0;border-bottom:1px solid var(--line);
+  }
+  .route-card-visit:last-child{border-bottom:none;}
+  .route-card-visit-date{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;}
+  .route-card-visit-notes{
+    flex:1 1 140px;min-width:0;font-size:12.5px;color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .route-card-visit-media{font-size:11.5px;color:var(--muted);white-space:nowrap;}
+  .route-card-visit-empty{font-size:12.5px;color:var(--muted);text-align:center;padding:6px 0;}
+  .route-card-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  /* 浅色主题下输入框用纯白底（与 .att-edit-row input 同一口径） */
+  body.light-theme .route-card-input{background:#ffffff;}
+  body.light-theme .route-card-visits{background:rgba(0,0,0,.015);}
+  /* ===== 经历下方的图片小图（最多 4 张，可点开预览该条经历的图片）===== */
+  .route-card-visit-thumbs{flex:1 1 100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .route-card-visit-thumbs:empty{display:none;}
+  .route-card-visit-thumb{
+    position:relative;width:44px;height:44px;padding:0;cursor:pointer;
+    border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:var(--line-2);
+  }
+  .route-card-visit-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .route-card-visit-thumb-play{
+    position:absolute;inset:0;display:grid;place-items:center;
+    background:rgba(0,0,0,.42);color:#fff;
+  }
+  .route-card-visit-thumb-more{
+    width:auto;min-width:44px;height:44px;padding:0 8px;cursor:pointer;
+    border:1px dashed var(--line);border-radius:var(--radius-sm);
+    background:var(--line-2);color:var(--muted);font:inherit;font-size:12px;
+  }
 
   /* ===== 视图切换标签（与顶部切换栏完全统一样式）===== */
   .view-tabs{display:flex;gap:2px;background:#0f0f0f;border-radius:10px;padding:3px;}
@@ -5648,7 +5811,6 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
     <div class="province-focus-layer" id="provinceFocusLayer" hidden aria-live="polite">
       <svg class="province-focus-lines" id="provinceFocusLines" aria-hidden="true"></svg>
       <div id="provinceFocusCards"></div>
-      <div class="province-focus-more" id="provinceFocusMore" hidden></div>
     </div>
     <!-- 人生地图足迹层：虚线预示航线 + 已飞亮线 + 到站圆点/脉冲 + 家/到站城市卡片 + 小飞机 -->
     <div class="footprint-layer" id="footprintLayer" hidden>
@@ -5794,7 +5956,7 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
       <div class="dash-card star-border" id="cityCardsPanel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <span class="ctitle" style="margin:0;">已点亮城市</span>
-          <button class="city-add-trigger" id="cityAddBtn" type="button" aria-haspopup="dialog" aria-controls="cityAddOverlay">＋ 添加城市</button>
+          <button class="city-add-trigger" id="cityAddBtn" type="button" aria-haspopup="dialog" aria-controls="cityAddOverlay">＋ 添加徒步路线</button>
           <!-- 【新增】返回上一页按钮：仅「全部」全屏网格模式显示，复用 specular 镜面玻璃风格 -->
           <button id="fsBackBtn" title="返回上一页">返回上一页</button>
         </div>
@@ -5851,18 +6013,18 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
     </div>
   </main>
 
-  <!-- 添加城市：搜索并选择后进入现有城市编辑页 -->
+  <!-- 添加徒步路线：先搜索并选择城市，再在该城市下新建一条路线 -->
   <div id="cityAddOverlay" class="city-add-overlay" role="dialog" aria-modal="true" aria-labelledby="cityAddTitle">
     <section class="city-add-dialog">
       <button class="city-add-close" id="cityAddClose" type="button" aria-label="关闭">×</button>
-      <span class="city-add-kicker">点亮一段新记忆</span>
-      <h2 id="cityAddTitle">点亮一座新城市</h2>
-      <p class="city-add-intro">这一次，故事发生在哪里？</p>
+      <span class="city-add-kicker">记录一次徒步</span>
+      <h2 id="cityAddTitle">添加徒步路线</h2>
+      <p class="city-add-intro">选择这次徒步所在的城市（仅用于归档与统计）</p>
       <div class="city-add-search-wrap">
         <input class="city-add-search" id="cityAddSearch" type="search" placeholder="输入城市名称，例如：大理" autocomplete="off" aria-controls="cityAddResults" />
       </div>
       <div class="city-add-results" id="cityAddResults" role="listbox"></div>
-      <button class="city-add-submit" id="cityAddSubmit" type="button" disabled>请先选择一座城市</button>
+      <button class="city-add-submit" id="cityAddSubmit" type="button" disabled>请先选择城市</button>
     </section>
   </div>
 
@@ -5883,7 +6045,9 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
       </div>
       <div id="hometownBanner" class="hometown-banner" style="display:none;">我的家乡</div>
       <div id="modalLandmark" class="modal-landmark" style="display:none;"></div>
-      <!-- 封面图 -->
+
+      <div class="modal-body">
+     <!-- 封面图 -->
       <div class="cover-section">
         <label id="coverLabel">城市封面</label>
         <button class="cover-upload-btn" id="coverUploadBtn">上传封面</button>
@@ -5910,14 +6074,14 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
         <textarea id="cityDescInput" class="city-desc-input" placeholder="为这座城市写一段简介…" maxlength="200"></textarea>
         <button class="btn primary" id="cityDescSaveBtn">保存</button>
       </div>
-      <!-- 游玩年月选择器 -->
-      <div class="month-picker">
-        <label id="monthPickerLabel">游玩年月</label>
-        <div class="month-entries" id="monthEntries"></div>
-        <button class="btn month-add-btn" id="monthAddBtn" type="button">+ 加一次</button>
-        <button class="btn primary" id="monthSaveBtn">保存</button>
+      <!-- 家乡出生年月（仅家乡城市显示；普通城市的游玩时间改由徒步路线记录） -->
+      <div class="birth-month-field" id="birthMonthField" hidden>
+        <label id="birthMonthLabel">出生年月</label>
+        <input type="month" id="birthMonthInput" aria-label="出生年月" />
+        <button class="btn primary" id="birthMonthSaveBtn">保存</button>
       </div>
-      <div class="modal-body">
+
+
         <!-- 相册管理区标题（与标签管理/景点管理样式统一）+ 引力相册入口 -->
         <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
           相册管理
@@ -5946,11 +6110,11 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
             <button class="btn" id="tagAddBtn">添加</button>
           </div>
         </div>
-        <!-- 景点管理区 -->
+        <!-- 徒步路线管理区 -->
         <div class="attraction-section">
-          <div class="section-title">景点管理</div>
+          <div class="section-title">徒步路线</div>
           <div id="attractionList"></div>
-          <button class="attraction-add-btn" id="attractionAddBtn">+ 添加景点</button>
+          <button class="attraction-add-btn" id="attractionAddBtn">+ 添加徒步路线</button>
         </div>
       </div>
       <div class="modal-foot">
@@ -6217,11 +6381,11 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
 
       <!-- 城市基础数据玻璃信息栏（下移至简介下方） -->
       <div class="att-info-bar" id="attInfoBar">
-        <div class="att-info-item"><span class="att-info-label">游玩年月</span><span class="att-info-value" id="attInfoMonth">-</span></div>
+        <div class="att-info-item"><span class="att-info-label">徒步路线时间</span><span class="att-info-value" id="attInfoMonth">-</span></div>
         <div class="att-info-sep"></div>
         <div class="att-info-item"><span class="att-info-label">推荐星级</span><span class="att-info-value" id="attInfoRating">-</span></div>
         <div class="att-info-sep"></div>
-        <div class="att-info-item"><span class="att-info-label">景点总数</span><span class="att-info-value" id="attInfoCount">-</span></div>
+        <div class="att-info-item"><span class="att-info-label">路线总数</span><span class="att-info-value" id="attInfoCount">-</span></div>
         <div class="att-info-sep"></div>
         <div class="att-info-item">
           <span class="att-info-label">相册影像</span>
@@ -6233,14 +6397,41 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
       <!-- 隐藏占位（保留原ID避免JS报错） -->
       <div class="att-grid-title" id="attGridTitle" style="display:none;"></div>
 
-      <!-- 景点网格（去除玻璃包装边框，直接展示） -->
+      <!-- 徒步路线网格（去除玻璃包装边框，直接展示） -->
       <div class="att-grid" id="attDetailBody"></div>
     </div>
   </div>
 
-  <!-- 景点编辑浮层（单击景点卡片弹出，深色玻璃，字段与原景点管理一致） -->
+  <!-- 徒步经历编辑浮层（城市弹窗与详情页共用；静态结构，主题自适应） -->
   <div id="attEditOverlay" class="att-edit-overlay">
-    <div class="att-edit-panel" id="attEditPanel"></div>
+    <div class="att-edit-panel" id="attEditPanel" role="dialog" aria-modal="true" aria-labelledby="routeEditorTitle">
+      <div class="att-edit-head">
+        <div class="att-edit-title">
+          <span class="pin-sm"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2 4 9h3v9h4v-6h2v6h4V9h3z"/></svg></span>
+          <h2 id="routeEditorTitle">徒步经历</h2>
+        </div>
+        <button type="button" class="icon-btn" id="routeEditorClose" aria-label="关闭">&times;</button>
+      </div>
+      <div class="att-edit-body">
+        <div class="att-edit-row">
+          <label for="routeDateInput">游玩日期</label>
+          <input type="date" id="routeDateInput" />
+        </div>
+        <div class="att-edit-row">
+          <label for="routeNotesInput">路线备注</label>
+          <textarea id="routeNotesInput" placeholder="路线备注…"></textarea>
+        </div>
+        <div class="att-edit-row">
+          <label>路线照片</label>
+          <div class="att-edit-thumbs" id="routeEditorThumbs">
+            <!-- 缩略图由 JS 插入到上传按钮之前；上传按钮本身是静态的 -->
+            <button type="button" class="att-edit-upload" id="routeUploadBtn" title="上传照片" aria-label="上传照片">+</button>
+          </div>
+          <div class="att-edit-hint">支持多张照片/视频同时上传 · 视频仅限本机模式</div>
+        </div>
+      </div>
+      <input type="file" id="routePhotoInput" accept="image/*,video/*,.mp4,.mov,.m4v,.webm" multiple hidden />
+    </div>
   </div>
 
   <!-- Toast -->
@@ -7536,7 +7727,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   const mapEl=$('map'), mapLoader=$('mapLoader'), loaderText=$('loaderText'),
         mapError=$('mapError'), mapWrapEl=$('mapWrap'),
         provinceFocusLayer=$('provinceFocusLayer'), provinceFocusLines=$('provinceFocusLines'),
-        provinceFocusCards=$('provinceFocusCards'), provinceFocusMore=$('provinceFocusMore');
+        provinceFocusCards=$('provinceFocusCards');
   const cityStatEl=$('cityStat'), photoStatEl=$('photoStat'), videoStatEl=$('videoStat'),
         provinceStatEl=$('provinceStat');
   // 数字自增动画：从当前值平滑过渡到目标值
@@ -7693,7 +7884,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     init(); // 启用 Variable Proximity 可变字体效果（Figtree + 动态颜色 + 发光）
   })();
   // 弹窗新增元素
-  const monthEntries=$('monthEntries'), monthAddBtn=$('monthAddBtn'), monthSaveBtn=$('monthSaveBtn'),
+  const birthMonthField=$('birthMonthField'), birthMonthInput=$('birthMonthInput'), birthMonthSaveBtn=$('birthMonthSaveBtn'),
         tagList=$('tagList'), tagInput=$('tagInput'), tagCategory=$('tagCategory'),
         tagAddBtn=$('tagAddBtn');
   // 封面图 + 星级 + 景点
@@ -7707,6 +7898,14 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         attDetailBg=$('attDetailBg'), attDetailDesc=$('attDetailDesc'),
         attGridTitle=$('attGridTitle'),
         attEditOverlay=$('attEditOverlay'), attEditPanel=$('attEditPanel');
+  // 徒步路线编辑器元素（静态表单）
+  const routeEditorTitle=$('routeEditorTitle'), routeEditorClose=$('routeEditorClose'),
+        routeNameInput=$('routeNameInput'), routeDifficultySelect=$('routeDifficultySelect'),
+        routeDistanceInput=$('routeDistanceInput'), routeElevationInput=$('routeElevationInput'),
+        routeAltitudeInput=$('routeAltitudeInput'), routeLngInput=$('routeLngInput'),
+        routeLatInput=$('routeLatInput'), routeDateInput=$('routeDateInput'),
+        routeNotesInput=$('routeNotesInput'), routeEditorThumbs=$('routeEditorThumbs'),
+        routeUploadBtn=$('routeUploadBtn'), routePhotoInput=$('routePhotoInput');
   // 城市卡片列表元素
   const cityCardsListEl=$('cityCardsList'), cityCardsEmptyEl=$('cityCardsEmpty');
   // 视图切换
@@ -7771,7 +7970,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   let currentCity=null;                    // 当前打开的城市点
   let geoLoaded=false;
   let selectedProvinceName='';             // 当前点击聚焦的省份
-  let provinceFocusCities=[];              // 当前省份悬浮卡片对应城市
+  let provinceFocusCities=[];              // 当前省份/城市视图的卡片条目（城市卡 或 徒步经历卡）
   let provinceFocusRenderToken=0;          // 避免快速切换省份时旧异步结果覆盖新结果
   let provinceFocusLayoutRaf=0;
   // 城市视图平移时整层走合成位移；停止后再一次性写回卡片坐标并精确重绘连线。
@@ -8120,6 +8319,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   refreshThemeToggleBtn();
   const themeToggleBtnEl=document.getElementById('themeToggleBtn');
   if(themeToggleBtnEl) themeToggleBtnEl.addEventListener('click',toggleTheme);
+  bindRouteEditorEvents();   // 徒步路线编辑器事件只绑定一次
 
   /* ===== 顶部功能菜单 ===== */
   (function(){
@@ -8860,7 +9060,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
             }
           };
         }
-        // v3 升级：新增 cityMeta 存储城市元数据（游玩年月、标签）
+        // v3 升级：新增 cityMeta 存储城市元数据（徒步路线、标签）
         if(!db.objectStoreNames.contains(META_STORE)){
           db.createObjectStore(META_STORE,{keyPath:'cityKey'});
         }
@@ -8938,25 +9138,203 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     }),10000,'交换顺序超时');
   }
 
-  /* ---------- 城市元数据 CRUD（游玩年月、标签） ---------- */
-  // cityMeta 结构: {cityKey, visitMonth:'YYYY-MM', visitMonths:['YYYY-MM'], tags:[{text,category}]}
+  /* ---------- 徒步路线数据模型（难度枚举 / 归一化 / 时间次数聚合） ---------- */
+  // 难度枚举：存英文 key，中文只在 UI 层映射
+  const ROUTE_DIFFICULTIES=['easy','moderate','hard','extreme','ultimate'];
+  const DIFFICULTY_LABELS={easy:'轻松',moderate:'适中',hard:'困难',extreme:'挑战',ultimate:'极限'};
+  const DIFFICULTY_COLORS={easy:'#4ade80',moderate:'#38bdf8',hard:'#fb923c',extreme:'#f87171',ultimate:'#c084fc'};
+  const ROUTE_DIR_NAME='徒步路线';      // 资料文件夹目录名（新）
+  const LEGACY_ROUTE_DIR_NAME='景点';  // 资料文件夹目录名（旧，读取时兼容）
+  const HOMETOWN_CITY_KEY_STORAGE='footprintHomeCity';
+  // 数字字段归一：空值/非法值 → fallback
+  function toRouteNumber(value,fallback){
+    if(value===''||value==null) return fallback;
+    const n=Number(value);
+    return Number.isFinite(n)?n:fallback;
+  }
+  // 坐标归一：空值/越界/非法 → null（0,0 是合法但无意义的坐标，用 null 表示未填写）
+  function toRouteCoord(value,min,max){
+    if(value===''||value==null) return null;
+    const n=Number(value);
+    if(!Number.isFinite(n)||n<min||n>max) return null;
+    return n;
+  }
+  function isHometownCityKey(cityKey){
+    if(!cityKey) return false;
+    try{ return localStorage.getItem(HOMETOWN_CITY_KEY_STORAGE)===cityKey; }catch(e){ return false; }
+  }
+  // 补齐一条徒步经历的字段（幂等，就地修改并返回同一对象）
+  function normalizeVisit(visit){
+    const v=(visit&&typeof visit==='object')?visit:{};
+    if(!v.id) v.id='v'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+    v.visitDate=typeof v.visitDate==='string'?v.visitDate:'';
+    v.notes=typeof v.notes==='string'?v.notes:'';
+    v.photos=Array.isArray(v.photos)?v.photos:[];
+    return v;
+  }
+  // 读取一条路线下的经历（兼容未归一化的旧形状：旧记录本身就是一次经历）
+  function routeVisits(route){
+    if(!route) return [];
+    if(Array.isArray(route.visits)) return route.visits;
+    if(route.visitDate||route.notes||(Array.isArray(route.photos)&&route.photos.length)) return [route];
+    return [];
+  }
+  // 一条路线最近一次经历的日期（无经历返回空串）
+  function latestVisitDate(route){
+    let latest='';
+    routeVisits(route).forEach(visit=>{
+      const d=String((visit&&visit.visitDate)||'').trim();
+      if(d&&d>latest) latest=d;
+    });
+    return latest;
+  }
+  // 一条路线下全部经历的照片（合并）；兼容未归一化的旧形状
+  function routeVisitPhotos(route){
+    const out=[];
+    routeVisits(route).forEach(visit=>{
+      if(visit&&Array.isArray(visit.photos)) out.push(...visit.photos);
+    });
+    return out;
+  }
+  // 扁平取出一批路线下的全部媒体副本（云同步 / 导出 / 归档用）
+  function routeMediaList(routes){
+    const out=[];
+    (Array.isArray(routes)?routes:[]).forEach(route=>{
+      out.push(...routeVisitPhotos(route));
+    });
+    return out;
+  }
+  // 补齐一条徒步路线的字段（幂等，就地修改并返回同一对象）
+  //   路线级：名称 / 难度 / 路线数据 / 坐标；经历级：route.visits[]
+  function normalizeRoute(route){
+    const r=(route&&typeof route==='object')?route:{};
+    if(!r.id) r.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+    r.name=typeof r.name==='string'?r.name:'';
+    r.difficulty=ROUTE_DIFFICULTIES.includes(r.difficulty)?r.difficulty:'';
+    r.distanceKm=toRouteNumber(r.distanceKm,0);
+    r.elevationGain=toRouteNumber(r.elevationGain,0);
+    r.maxAltitude=toRouteNumber(r.maxAltitude,0);
+    r.lng=toRouteCoord(r.lng,-180,180);
+    r.lat=toRouteCoord(r.lat,-90,90);
+    // ===== 旧结构迁移（幂等）：旧的一条记录同时是「路线 + 一次经历」 =====
+    if(!Array.isArray(r.visits)) r.visits=[];
+    const legacyDate=r.visitDate,legacyNotes=r.notes,legacyPhotos=r.photos;
+    if(legacyDate||legacyNotes||(Array.isArray(legacyPhotos)&&legacyPhotos.length)){
+      if(!r.visits.length){
+        r.visits.push(normalizeVisit({visitDate:legacyDate||'',notes:legacyNotes||'',photos:legacyPhotos||[]}));
+      }
+    }
+    delete r.visitDate; delete r.notes; delete r.photos;
+    r.visits.forEach(normalizeVisit);
+    return r;
+  }
+  // 城市元数据归一化（幂等，就地修改并返回同一对象）：
+  //   1) 补齐每条徒步路线的新字段（含旧记录迁移为 路线 + 一次经历）
+  //   2) 家乡出生年月从旧 visitMonth/visitMonths 懒迁移到 birthMonth
+  function normalizeCityMeta(meta){
+    if(!meta) return meta;
+    if(!Array.isArray(meta.attractions)) meta.attractions=[];
+    meta.attractions.forEach(normalizeRoute);
+    if(typeof meta.birthMonth!=='string') meta.birthMonth='';
+    if(!meta.birthMonth&&isHometownCityKey(meta.cityKey)){
+      meta.birthMonth=(Array.isArray(meta.visitMonths)&&meta.visitMonths[0])||meta.visitMonth||'';
+    }
+    return meta;
+  }
+  // 时间与次数聚合：唯一权威来源（次数 = 路线条数，时间 = 全部经历的日期聚合）
+  function getRouteStats(meta){
+    const routes=(meta&&Array.isArray(meta.attractions))?meta.attractions:[];
+    const dates=[],months=[],visits=[];
+    routes.forEach((route,routeIndex)=>{
+      routeVisits(route).forEach((visit,visitIndex)=>{
+        visits.push({route,visit,routeIndex,visitIndex});
+        const d=String((visit&&visit.visitDate)||'').trim();
+        const match=/^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+        if(!match) return;
+        const month=Number(match[2]),day=Number(match[3]);
+        if(month<1||month>12||day<1||day>31) return;
+        dates.push(d);
+        months.push(d.slice(0,7));
+      });
+    });
+    const uniqMonths=[...new Set(months)].sort();
+    const sortedDates=dates.slice().sort();
+    return {
+      count:routes.length,
+      routes,
+      visits,
+      visitCount:visits.length,
+      dates:sortedDates,
+      months:uniqMonths,
+      firstMonth:uniqMonths[0]||'',
+      latestMonth:uniqMonths[uniqMonths.length-1]||'',
+      firstDate:sortedDates[0]||'',
+      latestDate:sortedDates[sortedDates.length-1]||'',
+      datedCount:dates.length
+    };
+  }
+  // "N 条路线 · 2026-03~2026-05"
+  function formatRouteTimeSummary(stats){
+    if(!stats||!stats.count) return '';
+    return stats.count+' 条路线 · '+formatRouteTimeRange(stats);
+  }
+  // "2026-03 ~ 2026-05"
+  function formatRouteTimeRange(stats){
+    if(!stats||!stats.months||!stats.months.length) return '时间未记录';
+    return stats.months.length===1?stats.months[0]:(stats.months[0]+' ~ '+stats.months[stats.months.length-1]);
+  }
+  // 公开点评/主页的路线投影：兼容旧版字符串数组与新版对象数组
+  function normalizePublicRoutes(list){
+    return (Array.isArray(list)?list:[]).map(item=>{
+      if(typeof item==='string') return {name:item,difficulty:'',distanceKm:0,elevationGain:0,maxAltitude:0,visitDate:''};
+      return {
+        name:(item&&item.name)||'',
+        difficulty:ROUTE_DIFFICULTIES.includes(item&&item.difficulty)?item.difficulty:'',
+        distanceKm:toRouteNumber(item&&item.distanceKm,0),
+        elevationGain:toRouteNumber(item&&item.elevationGain,0),
+        maxAltitude:toRouteNumber(item&&item.maxAltitude,0),
+        visitDate:item&&Array.isArray(item.visits)?latestVisitDate(item):((item&&item.visitDate)||'')
+      };
+    }).filter(route=>route.name);
+  }
+  // 城市记录 → 公开点评/主页的路线列表（只暴露可公开字段，不含坐标）
+  function publicRoutesOf(meta){
+    return normalizePublicRoutes(meta&&meta.attractions);
+  }
+  // 新建路线时的默认坐标：该城市质心（DataV GCJ-02）
+  function defaultRouteCoords(cityKey){
+    const point=cityPoints.find(c=>c&&c.cityKey===cityKey);
+    if(!point||!Array.isArray(point.value)||point.value.length!==2) return {lng:null,lat:null};
+    return {lng:Math.round(point.value[0]*1e4)/1e4,lat:Math.round(point.value[1]*1e4)/1e4};
+  }
+
+  /* ---------- 城市元数据 CRUD（徒步路线、标签、家乡出生年月） ---------- */
+  // cityMeta 结构: {cityKey, birthMonth:'YYYY-MM', tags:[{text,category}],
+  //   attractions:[徒步路线 {id,name,difficulty,distanceKm,elevationGain,maxAltitude,lng,lat,visits:[徒步经历 {id,visitDate,notes,photos}]}]}
   let cityMetaCache=new Map(); // cityKey -> meta
+  /** @deprecated 遗留字段读取，仅用于旧数据迁移；新代码请用 getRouteStats() */
   function getVisitMonths(meta){
     if(Array.isArray(meta&&meta.visitMonths)) return meta.visitMonths.filter(month=>typeof month==='string'&&month);
     return meta&&meta.visitMonth?[meta.visitMonth]:[];
   }
   async function getCityMeta(cityKey){
-    if(cityMetaCache.has(cityKey)) return cityMetaCache.get(cityKey);
+    if(cityMetaCache.has(cityKey)){
+      const cached=cityMetaCache.get(cityKey);
+      normalizeCityMeta(cached); // 幂等：家乡身份变更后仍能懒迁移出生年月
+      return cached;
+    }
     const db=await openDB();
     const meta=await withTimeout(new Promise((resolve,reject)=>{
       const r=db.transaction(META_STORE,'readonly').objectStore(META_STORE).get(cityKey);
-      r.onsuccess=()=>resolve(r.result||{cityKey,visitMonth:'',visitMonths:[],tags:[]});
+      r.onsuccess=()=>resolve(r.result||{cityKey,birthMonth:'',tags:[]});
       r.onerror=()=>reject(r.error);
     }),8000,'读取城市元数据超时');
+    normalizeCityMeta(meta);
     cityMetaCache.set(cityKey,meta);
     return meta;
   }
   async function saveCityMeta(meta){
+    normalizeCityMeta(meta);
     meta.updatedAt=Date.now();
     const db=await openDB();
     await withTimeout(new Promise((resolve,reject)=>{
@@ -8974,7 +9352,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       r.onsuccess=()=>resolve(r.result||[]);
       r.onerror=()=>reject(r.error);
     }),8000,'读取全部城市元数据超时');
-    metas.forEach(m=>cityMetaCache.set(m.cityKey,m));
+    metas.forEach(m=>{ normalizeCityMeta(m); cityMetaCache.set(m.cityKey,m); });
     return metas;
   }
 
@@ -9094,7 +9472,12 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     }catch(e){ return []; }
   }
 
-  /* ---------- 省份点击聚焦：城市照片卡片 + 地图连接线 ---------- */
+  /* ---------- 省份点击聚焦：徒步经历卡片 + 地图连接线 ---------- */
+  // 卡片条目（provinceFocusCities 的元素）统一形状：
+  //   {kind:'city'|'visit', city, key, anchor:[lng,lat], cover, name, difficulty, date,
+  //    rating, tags, route, visit, routeIdx, visitIdx}
+  //   key    ：城市卡 = cityKey（历史图钉/位置缓存继续生效）；经历卡 = cityKey#路线下标#经历下标
+  //   anchor ：城市卡 = 城市质心；经历卡 = 路线坐标（未填写则回落城市质心）
   function clearProvinceFocus(){
     resetCityCardRoamTransform();
     selectedProvinceName='';
@@ -9102,7 +9485,6 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     provinceFocusRenderToken++;
     provinceFocusCards.innerHTML='';
     provinceFocusLines.innerHTML='';
-    provinceFocusMore.hidden=true;
     provinceFocusLayer.hidden=true;
     applyProvinceRegionStyles();
     updateScatterData();
@@ -9121,73 +9503,167 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     await renderProvinceFocusCards(provinceName);
   }
 
+  // 经历卡的连线锚点：路线自己的坐标；未填写坐标则回落到城市质心
+  function visitAnchorOf(route,city){
+    const lng=route?route.lng:null,lat=route?route.lat:null;
+    if(lng!=null&&lat!=null&&Number.isFinite(lng)&&Number.isFinite(lat)) return [lng,lat];
+    return (city&&Array.isArray(city.value)&&city.value.length===2)?city.value:null;
+  }
+  // 经历封面：优先该经历的第一张照片；只有视频时回落视频封面 JPEG
+  function visitCoverOf(visit){
+    const photos=(visit&&Array.isArray(visit.photos))?visit.photos:[];
+    const img=photos.find(p=>p&&p.kind!=='video'&&p.dataUrl);
+    if(img) return img.dataUrl;
+    const any=photos.find(p=>p&&p.dataUrl);
+    return any?any.dataUrl:'';
+  }
+  // 城市列表 → 徒步经历卡片条目（一条经历一条）
+  async function collectVisitCardEntries(cityList){
+    const out=[];
+    for(const city of (cityList||[])){
+      if(!city||!city.cityKey) continue;
+      let meta=null;
+      try{ meta=await getCityMeta(city.cityKey); }catch(e){ meta=null; }
+      const routes=(meta&&Array.isArray(meta.attractions))?meta.attractions:[];
+      routes.forEach((route,routeIdx)=>{
+        routeVisits(route).forEach((visit,visitIdx)=>{
+          const anchor=visitAnchorOf(route,city);
+          if(!anchor) return;
+          out.push({
+            kind:'visit',
+            city,
+            key:city.cityKey+'#'+routeIdx+'#'+visitIdx,
+            anchor,
+            cover:visitCoverOf(visit),
+            name:(route&&route.name)||'未命名路线',
+            difficulty:(route&&route.difficulty)||'',
+            date:String((visit&&visit.visitDate)||''),
+            route,visit,routeIdx,visitIdx
+          });
+        });
+      });
+    }
+    return out;
+  }
+  // 城市卡片条目（城市视图，以及省份内还没有徒步经历时的回退）
+  async function collectCityCardEntries(cityList){
+    const out=[];
+    for(const city of (cityList||[])){
+      if(!city||!city.cityKey) continue;
+      const meta=await getCityMeta(city.cityKey);
+      out.push({
+        kind:'city',
+        city,
+        key:city.cityKey,
+        anchor:city.value,
+        cover:(meta&&meta.coverImage)||'',
+        name:city.name,
+        rating:Math.max(0,Math.min(5,Math.round(Number(meta&&meta.rating)||0))),
+        tags:((meta&&meta.tags)||[]).map(t=>t&&t.text).filter(Boolean),   // 卡片下部分展示城市标签（替代城市简介）
+        difficulty:'',
+        date:''
+      });
+    }
+    return out;
+  }
+
   async function renderProvinceFocusCards(provinceName){
     const token=++provinceFocusRenderToken;
-    // 省份视图不再全量铺开城市卡片与连线（地图保持清爽）；城市视图保持原行为，点击具体省份仍展示该省卡片
+    // 城市视图（未选省份）：保持「一城一卡」；点击省份：该省每条徒步经历一张卡（不限数量）
     const showAllLitCities=currentView==='city'&&!provinceName;
-    const provinceCities=cityPoints
-      .filter(city=>citiesWithPhotos.has(city.cityKey)&&(showAllLitCities||provinceOf(city.adcode)===provinceName))
-      .sort((a,b)=>(photoCountByCity.get(b.cityKey)||0)-(photoCountByCity.get(a.cityKey)||0));
-    const visibleLimit=showAllLitCities?provinceCities.length:(window.innerWidth<=640?1:4);
-    const visibleCities=provinceCities.slice(0,visibleLimit);
-    const cardCities=await Promise.all(visibleCities.map(async city=>{
-      const meta=await getCityMeta(city.cityKey);
-      return {
-        city,
-        cover:meta.coverImage||'',
-        rating:Math.max(0,Math.min(5,Math.round(Number(meta.rating)||0))),
-        tags:(meta.tags||[]).map(t=>t&&t.text).filter(Boolean)   // 卡片下部分展示城市标签（替代城市简介）
-      };
-    }));
     const viewStillMatches=showAllLitCities
       ?(currentView==='province'||currentView==='city')&&!selectedProvinceName
       :selectedProvinceName===provinceName;
     if(token!==provinceFocusRenderToken||!viewStillMatches) return;
 
+    let entries=[];
+    if(showAllLitCities){
+      const litCities=cityPoints
+        .filter(city=>citiesWithPhotos.has(city.cityKey))
+        .sort((a,b)=>(photoCountByCity.get(b.cityKey)||0)-(photoCountByCity.get(a.cityKey)||0));
+      entries=await collectCityCardEntries(litCities);
+    }else{
+      const provinceCities=cityPoints.filter(city=>provinceOf(city.adcode)===provinceName);
+      entries=await collectVisitCardEntries(provinceCities);
+      if(!entries.length){
+        // 该省还没有任何徒步经历 → 回退为城市卡（保留「点亮省份能看到城市」的旧行为）
+        const litCities=provinceCities
+          .filter(city=>citiesWithPhotos.has(city.cityKey))
+          .sort((a,b)=>(photoCountByCity.get(b.cityKey)||0)-(photoCountByCity.get(a.cityKey)||0));
+        entries=await collectCityCardEntries(litCities);
+      }else{
+        // 时间倒序（没记日期的排最后）；同日期按城市相册照片数倒序
+        entries.sort((a,b)=>{
+          const da=a.date||'',db=b.date||'';
+          if(da!==db){ if(!da) return 1; if(!db) return -1; return db<da?-1:1; }
+          return (photoCountByCity.get(b.city.cityKey)||0)-(photoCountByCity.get(a.city.cityKey)||0);
+        });
+      }
+    }
+    if(token!==provinceFocusRenderToken||!viewStillMatches) return;
+
     resetCityCardRoamTransform();
     provinceFocusCards.innerHTML='';
     provinceFocusLines.innerHTML='';
-    provinceFocusCities=cardCities;
-    provinceFocusLayer.hidden=!cardCities.length;
-    provinceFocusMore.hidden=provinceCities.length<=visibleLimit;
-    provinceFocusMore.textContent=provinceCities.length>visibleLimit
-      ?'另有 '+(provinceCities.length-visibleLimit)+' 个已记录城市，可在右侧列表查看'
-      :'';
+    provinceFocusCities=entries;
+    provinceFocusLayer.hidden=!entries.length;
 
-    cardCities.forEach((item,index)=>{
+    entries.forEach((item,index)=>{
       const card=document.createElement('button');
       card.type='button';
-      card.className='province-map-card';
+      card.className='province-map-card'+(item.kind==='visit'?' province-map-card--visit':'');
       card.dataset.cityKey=item.city.cityKey;
-      card.style.animationDelay=(index*45)+'ms';
-      card.setAttribute('aria-label','打开'+item.city.name+'旅行记录');
+      card.dataset.cardKey=item.key;
+      card.style.animationDelay=(Math.min(index,8)*45)+'ms';
 
       const image=item.cover?document.createElement('img'):document.createElement('span');
       image.className=item.cover?'province-map-card-image':'province-map-card-image-empty';
       if(item.cover){
         image.src=item.cover;
-        image.alt=item.city.name+'城市封面';
+        image.alt=item.kind==='visit'?(item.name+' 封面'):(item.city.name+'城市封面');
         image.draggable=false;
       }else{
-        image.textContent='未上传封面';
+        image.textContent=item.kind==='visit'?'无封面':'未上传封面';
       }
 
       const copy=document.createElement('span');
       copy.className='province-map-card-copy';
-      const name=document.createElement('span');
-      name.className='province-map-card-name';
-      name.textContent=item.city.name;
-      const rating=document.createElement('span');
-      rating.className='province-map-card-rating';
-      rating.innerHTML=item.rating?'推荐 '+renderStars(item.rating):'推荐 暂未评分';
-      const intro=document.createElement('span');
-      intro.className='province-map-card-intro';
-      intro.textContent=item.tags.length?item.tags.join(' · '):'暂无标签';
-      intro.title=item.tags.length?('标签：'+item.tags.join('、')):'暂无标签';
-      copy.append(name,rating,intro);
+      if(item.kind==='visit'){
+        // 经历卡：路线名称 / 路线难度 / 时间
+        const name=document.createElement('span');
+        name.className='province-map-card-name';
+        name.textContent=item.name;
+        name.title=item.city.name+' · '+item.name;
+        copy.appendChild(name);
+        const badgeHtml=routeDifficultyBadge(item.difficulty);
+        if(badgeHtml){
+          const badge=document.createElement('span');
+          badge.className='province-map-card-badge';
+          badge.innerHTML=badgeHtml;
+          copy.appendChild(badge);
+        }
+        const date=document.createElement('span');
+        date.className='province-map-card-date';
+        date.textContent=item.date||'未记录时间';
+        copy.appendChild(date);
+        card.setAttribute('aria-label','打开'+item.city.name+'「'+item.name+'」的徒步经历');
+      }else{
+        const name=document.createElement('span');
+        name.className='province-map-card-name';
+        name.textContent=item.city.name;
+        const rating=document.createElement('span');
+        rating.className='province-map-card-rating';
+        rating.innerHTML=item.rating?'推荐 '+renderStars(item.rating):'推荐 暂未评分';
+        const intro=document.createElement('span');
+        intro.className='province-map-card-intro';
+        intro.textContent=item.tags.length?item.tags.join(' · '):'暂无标签';
+        intro.title=item.tags.length?('标签：'+item.tags.join('、')):'暂无标签';
+        copy.append(name,rating,intro);
+        card.setAttribute('aria-label','打开'+item.city.name+'旅行记录');
+      }
       card.append(image,copy);
       // 位置缓存命中：直接落在历史位置并跳过入场动画，重建前后位置完全一致，杜绝"换位"观感
-      const cached=cardPosCache[item.city.cityKey];
+      const cached=cardPosCache[item.key];
       if(cached){
         const ins=provinceCardInsets();
         const cw=mapWrapEl.clientWidth,ch=mapWrapEl.clientHeight;
@@ -9196,12 +9672,16 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         card.style.top=Math.max(ins.top,Math.min(maxY,cached.yPct*ch))+'px';
         card.style.animation='none';
       }
-      card.addEventListener('click',()=>openCityModal(item.city));
-      attachProvinceCardDrag(card,item.city);
+      card.addEventListener('click',()=>{
+        if(item.kind==='visit') openAttractionDetail(item.city,item.routeIdx);
+        else openCityModal(item.city);
+      });
+      attachProvinceCardDrag(card,item);
       provinceFocusCards.appendChild(card);
     });
     requestProvinceFocusLayout();   // 新卡片无像素位置 → 布局只做初始摆放
-    provinceFocusLastPoints=null;   // 城市集合已变化，平移检测基线失效，待布局后重建
+    provinceFocusLastPoints=null;   // 卡片集合已变化，平移检测基线失效，待布局后重建
+    fpSyncCardsVisibility();         // 与足迹到站卡互斥：省份卡出现时让位，反之亦然
   }
 
   function requestProvinceFocusLayout(){
@@ -9213,14 +9693,15 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   }
 
   /* ---------- 卡片拖拽固定位置 ---------- */
-  // V3：废弃 V2 旧缓存——V2 位置无「避让地图陆地」原则，新原则生效后需重新自动布局一次
-  const CARD_PINS_KEY='travelCardPinsV3';
+  // V4：废弃 V3 旧缓存——V3 按城市 cityKey 记录；V4 起按「卡片条目 key」记录
+  //（城市视图 key=cityKey 保持不变；省份视图 key=城市#路线下标#经历下标），避免城市级图钉串味到经历卡
+  const CARD_PINS_KEY='travelCardPinsV4';
   let cardPins=(function(){try{return JSON.parse(localStorage.getItem(CARD_PINS_KEY))||{}}catch(e){return{}}})();
   function saveCardPins(){try{localStorage.setItem(CARD_PINS_KEY,JSON.stringify(cardPins))}catch(e){}}
-  // 卡片位置缓存（按城市 cityKey 记忆百分比位置）：视图切换/省份点击/空白点击会销毁重建卡片 DOM，
+  // 卡片位置缓存（按卡片条目 key 记忆百分比位置）：视图切换/省份点击/空白点击会销毁重建卡片 DOM，
   // 重建时从缓存直接落回历史位置并跳过入场动画——配合"布局永不移动已摆放卡片"，
   // 实现卡片唯一移动方式 = 鼠标拖动卡片
-  const CARD_POS_CACHE_KEY='travelCardPosCacheV3';
+  const CARD_POS_CACHE_KEY='travelCardPosCacheV4';
   let cardPosCache=(function(){try{return JSON.parse(localStorage.getItem(CARD_POS_CACHE_KEY))||{}}catch(e){return{}}})();
   function saveCardPosCache(){try{localStorage.setItem(CARD_POS_CACHE_KEY,JSON.stringify(cardPosCache))}catch(e){}}
   // 平移跟随期间位置持续变化，localStorage 持久化做防抖，避免拖动中高频写盘
@@ -9229,8 +9710,15 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     clearTimeout(cardPosSaveTimer);
     cardPosSaveTimer=setTimeout(()=>{saveCardPosCache();saveCardPins();},400);
   }
-  // 上一次各城市的屏幕像素坐标，作为平移检测基线（城市集合变化时置 null）
+  // 上一次各卡片的屏幕像素坐标，作为平移检测基线（卡片集合变化时置 null）
+  // 按条目 key 索引：经历卡顺序会随时间倒序变化，用下标配对会把位移算到别的卡片上
   let provinceFocusLastPoints=null;
+  // 卡片条目 key → 条目；卡片与条目的配对一律按 key，不再按下标
+  function provinceEntryByKey(){
+    const map=new Map();
+    (provinceFocusCities||[]).forEach(item=>{ if(item&&item.key) map.set(item.key,item); });
+    return map;
+  }
 
   // 城市视图拖动热路径：卡片与连线作为两个合成层整体移动，避免每帧逐卡
   // convertToPixel、DOM 定位和 SVG 节点重建。地图停止后再写回真实位置。
@@ -9255,8 +9743,9 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     resetCityCardRoamTransform();
     const cards=Array.from(provinceFocusCards.querySelectorAll('.province-map-card'));
     const width=mapWrapEl.clientWidth,height=mapWrapEl.clientHeight;
-    cards.forEach((card,index)=>{
-      const item=provinceFocusCities[index];
+    const byKey=provinceEntryByKey();
+    cards.forEach(card=>{
+      const item=byKey.get(card.dataset.cardKey);
       const left=parseFloat(card.style.left),top=parseFloat(card.style.top);
       if(!item||!Number.isFinite(left)||!Number.isFinite(top)) return;
       const nextLeft=left+dx,nextTop=top+dy;
@@ -9264,15 +9753,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       card.style.top=nextTop+'px';
       if(width&&height){
         const pct={xPct:+(nextLeft/width).toFixed(4),yPct:+(nextTop/height).toFixed(4)};
-        cardPosCache[item.city.cityKey]=pct;
-        if(cardPins[item.city.cityKey]) cardPins[item.city.cityKey]=pct;
+        cardPosCache[item.key]=pct;
+        if(cardPins[item.key]) cardPins[item.key]=pct;
       }
     });
     if(cards.length) saveCardPositionsDebounced();
-    const points=provinceFocusCities.map(item=>myChart&&myChart.convertToPixel({geoIndex:2},item.city.value));
-    if(points.length&&points.every(point=>point&&Number.isFinite(point[0])&&Number.isFinite(point[1]))) {
-      provinceFocusLastPoints=points;
-    }
+    const points=new Map();
+    (provinceFocusCities||[]).forEach(item=>{
+      const point=myChart&&myChart.convertToPixel({geoIndex:2},item.anchor);
+      if(point&&Number.isFinite(point[0])&&Number.isFinite(point[1])) points.set(item.key,point);
+    });
+    if(points.size===(provinceFocusCities||[]).length&&points.size) provinceFocusLastPoints=points;
   }
 
   // 城市点→卡片锚点的贝塞尔连线路径（自动布局与拖拽共用，保证线条跟随一致）
@@ -9310,7 +9801,8 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     };
   }
 
-  function attachProvinceCardDrag(card,city){
+  // 第二个参数是卡片条目（不是城市）：经历卡的连线锚点是路线坐标，图钉/位置缓存按条目 key 记录
+  function attachProvinceCardDrag(card,item){
     if(card._dragBound) return;
     card._dragBound=true;
     let dragging=false,moved=false,startX=0,startY=0,origX=0,origY=0;
@@ -9338,11 +9830,11 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const x=Math.max(ins.left,Math.min(maxX,origX+dx));
       const y=Math.max(ins.top,Math.min(maxY,origY+dy));
       card.style.left=x+'px';card.style.top=y+'px';
-      // 连线实时跟随卡片
+      // 连线实时跟随卡片（锚点用条目的 anchor：经历卡是路线坐标，不是城市质心）
       if(myChart){
-        const point=myChart.convertToPixel({geoIndex:2},city.value);
+        const point=myChart.convertToPixel({geoIndex:2},item.anchor);
         if(point&&Number.isFinite(point[0])&&Number.isFinite(point[1])){
-          const path=provinceFocusLines.querySelector('path[data-city="'+city.cityKey+'"]');
+          const path=provinceFocusLines.querySelector('path[data-card-key="'+item.key+'"]');
           if(path){
             const bendSign=Number(card.dataset.bendSign)||1;
             path.setAttribute('d',provinceCardLinkPath(point,{x,y,w:ins.w,h:ins.h},bendSign));
@@ -9369,7 +9861,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       let rect=clamp(parseFloat(card.style.left)||0,parseFloat(card.style.top)||0);
       // 与其他固定卡片重叠时，就近寻找不重叠的落点
       const hitPinned=r=>Object.keys(cardPins).some(k=>{
-        if(k===city.cityKey) return false;
+        if(k===item.key) return false;
         const p=cardPins[k];
         const o=clamp(p.xPct*width,p.yPct*height);
         return r.x<o.x+o.w-4&&r.x+r.w-4>o.x&&r.y<o.y+o.h-4&&r.y+r.h-4>o.y;
@@ -9385,10 +9877,10 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       }
       card.style.left=rect.x+'px';card.style.top=rect.y+'px';
       // 按地图容器百分比存储，窗口尺寸变化后仍可还原
-      cardPins[city.cityKey]={xPct:width?+(rect.x/width).toFixed(4):0,yPct:height?+(rect.y/height).toFixed(4):0};
+      cardPins[item.key]={xPct:width?+(rect.x/width).toFixed(4):0,yPct:height?+(rect.y/height).toFixed(4):0};
       saveCardPins();
       // 拖动落点同步写入位置缓存，保证后续重建（视图切换/省份点击）落回拖动后的位置
-      cardPosCache[city.cityKey]={xPct:cardPins[city.cityKey].xPct,yPct:cardPins[city.cityKey].yPct};
+      cardPosCache[item.key]={xPct:cardPins[item.key].xPct,yPct:cardPins[item.key].yPct};
       saveCardPosCache();
       card.classList.add('is-pinned');
       // 卡片冻结：拖动是唯一移动方式，其他卡片不避让；此处仅按最终落点重绘连线
@@ -9398,9 +9890,9 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     card.addEventListener('pointercancel',endDrag);
     // 右键点击已固定卡片 → 取消固定并恢复自动布局
     card.addEventListener('contextmenu',e=>{
-      if(!cardPins[city.cityKey]) return;
+      if(!cardPins[item.key]) return;
       e.preventDefault();
-      delete cardPins[city.cityKey];
+      delete cardPins[item.key];
       saveCardPins();
       card.classList.remove('is-pinned');
       // 卡片冻结：取消固定仅移除图钉标记，卡片位置保持不变，只重绘连线
@@ -9427,7 +9919,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     updateProvinceCardLines();
   }
 
-  // 纯平移地图时：卡片位置保持不动，仅按城市最新像素位置重绘连线
+  // 纯平移地图时：卡片位置保持不动，仅按卡片锚点（经历卡=路线坐标）最新像素位置重绘连线
   function updateProvinceCardLines(){
     if(!myChart||(!selectedProvinceName&&currentView!=='province'&&currentView!=='city')||provinceFocusLayer.hidden||!provinceFocusCities.length) return;
     const cards=Array.from(provinceFocusCards.querySelectorAll('.province-map-card'));
@@ -9435,17 +9927,18 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const width=mapWrapEl.clientWidth,height=mapWrapEl.clientHeight;
     provinceFocusLines.setAttribute('viewBox','0 0 '+width+' '+height);
     provinceFocusLines.innerHTML='';
-    provinceFocusCities.forEach((item,index)=>{
-      const card=cards[index];
-      if(!card) return;
-      const point=myChart.convertToPixel({geoIndex:2},item.city.value);
+    const byKey=provinceEntryByKey();
+    cards.forEach((card,index)=>{
+      const item=byKey.get(card.dataset.cardKey);
+      if(!item) return;
+      const point=myChart.convertToPixel({geoIndex:2},item.anchor);
       if(!point||!Number.isFinite(point[0])||!Number.isFinite(point[1])) return;
       const x=parseFloat(card.style.left),y=parseFloat(card.style.top);
       if(!Number.isFinite(x)||!Number.isFinite(y)) return;
       const w=card.offsetWidth||154,h=card.offsetHeight||70;
       const bendSign=Number(card.dataset.bendSign)||(index%2===0?1:-1);
       const line=document.createElementNS('http://www.w3.org/2000/svg','path');
-      line.setAttribute('data-city',item.city.cityKey);
+      line.setAttribute('data-card-key',item.key);
       line.setAttribute('d',provinceCardLinkPath(point,{x,y,w,h},bendSign));
       const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
       dot.setAttribute('cx',point[0]);dot.setAttribute('cy',point[1]);dot.setAttribute('r','3');
@@ -9453,19 +9946,26 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     });
   }
 
-  // 【跟随城市】地图平移/缩放/混合操作时，每张卡片按各自城市的屏幕位移量同步移动，
-  // 卡片与城市的相对位置保持不变，连线长短/弯曲完全固定；同步更新位置缓存（防抖持久化）
+  // 【跟随城市】地图平移/缩放/混合操作时，每张卡片按各自锚点的屏幕位移量同步移动，
+  // 卡片与锚点的相对位置保持不变，连线长短/弯曲完全固定；同步更新位置缓存（防抖持久化）
   function panFollowCards(cards){
-    const points=provinceFocusCities.map(item=>myChart.convertToPixel({geoIndex:2},item.city.value));
-    const valid=points.length>0&&points.every(p=>p&&Number.isFinite(p[0])&&Number.isFinite(p[1]));
-    if(valid&&provinceFocusLastPoints&&provinceFocusLastPoints.length===points.length){
+    const byKey=provinceEntryByKey();
+    const points=new Map();
+    byKey.forEach((item,key)=>{
+      const p=myChart.convertToPixel({geoIndex:2},item.anchor);
+      if(p&&Number.isFinite(p[0])&&Number.isFinite(p[1])) points.set(key,p);
+    });
+    const valid=points.size>0&&points.size===byKey.size;
+    if(valid&&provinceFocusLastPoints&&provinceFocusLastPoints.size===points.size){
       let moved=false;
       const w=mapWrapEl.clientWidth,h=mapWrapEl.clientHeight;
-      cards.forEach((card,i)=>{
-        const it=provinceFocusCities[i];
+      cards.forEach(card=>{
+        const it=byKey.get(card.dataset.cardKey);
         if(!it) return;
-        const dx=points[i][0]-provinceFocusLastPoints[i][0];
-        const dy=points[i][1]-provinceFocusLastPoints[i][1];
+        const now=points.get(it.key),prev=provinceFocusLastPoints.get(it.key);
+        if(!now||!prev) return;
+        const dx=now[0]-prev[0];
+        const dy=now[1]-prev[1];
         if(Math.abs(dx)<0.01&&Math.abs(dy)<0.01) return;
         const l=parseFloat(card.style.left),t=parseFloat(card.style.top);
         if(!Number.isFinite(l)||!Number.isFinite(t)) return;
@@ -9474,8 +9974,8 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         moved=true;
         if(w&&h){
           const pct={xPct:+((l+dx)/w).toFixed(4),yPct:+((t+dy)/h).toFixed(4)};
-          cardPosCache[it.city.cityKey]=pct;
-          if(cardPins[it.city.cityKey]) cardPins[it.city.cityKey]=pct;
+          cardPosCache[it.key]=pct;
+          if(cardPins[it.key]) cardPins[it.key]=pct;
         }
       });
       if(moved) saveCardPositionsDebounced();
@@ -9494,14 +9994,15 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const width=mapWrapEl.clientWidth,height=mapWrapEl.clientHeight;
     if(!width||!height) return false;
     const rects=[];
-    cards.forEach((card,index)=>{
-      const item=provinceFocusCities[index];
+    const byKey=provinceEntryByKey();
+    cards.forEach(card=>{
+      const item=byKey.get(card.dataset.cardKey);
       if(!item) return;
       const l=parseFloat(card.style.left),t=parseFloat(card.style.top);
       if(!Number.isFinite(l)||!Number.isFinite(t)) return;
-      const point=myChart.convertToPixel({geoIndex:2},item.city.value);
+      const point=myChart.convertToPixel({geoIndex:2},item.anchor);
       if(!point||!Number.isFinite(point[0])||!Number.isFinite(point[1])) return;
-      rects.push({item,pinned:!!cardPins[item.city.cityKey],point,card,x:l,y:t,w:card.offsetWidth||154,h:card.offsetHeight||70});
+      rects.push({item,pinned:!!cardPins[item.key],point,card,x:l,y:t,w:card.offsetWidth||154,h:card.offsetHeight||70});
     });
     if(rects.length<2) return false;
     const ins=provinceCardInsets();
@@ -9549,7 +10050,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     if(moved){
       // 治愈后的位置写回缓存，堆叠状态不再被还原
       rects.forEach(r=>{
-        cardPosCache[r.item.city.cityKey]={xPct:+(r.x/width).toFixed(4),yPct:+(r.y/height).toFixed(4)};
+        cardPosCache[r.item.key]={xPct:+(r.x/width).toFixed(4),yPct:+(r.y/height).toFixed(4)};
       });
       saveCardPosCache();
     }
@@ -9570,7 +10071,13 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       return;
     }
     const width=mapWrapEl.clientWidth,height=mapWrapEl.clientHeight;
-    const points=provinceFocusCities.map(item=>myChart.convertToPixel({geoIndex:2},item.city.value));
+    const byKey=provinceEntryByKey();
+    // 锚点像素位置按条目 key 索引（经历卡锚点是路线坐标，不是城市质心）
+    const points=new Map();
+    byKey.forEach((item,key)=>{
+      const p=myChart.convertToPixel({geoIndex:2},item.anchor);
+      if(p&&Number.isFinite(p[0])&&Number.isFinite(p[1])) points.set(key,p);
+    });
     provinceFocusLines.setAttribute('viewBox','0 0 '+width+' '+height);
     provinceFocusLines.innerHTML='';
     const mobile=window.innerWidth<=640;
@@ -9641,24 +10148,38 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     // 用户固定的卡片位置优先：按容器百分比还原并预占矩形，自动布局避让
     const pinnedCardRects={};
     provinceFocusCities.forEach(item=>{
-      const pin=cardPins[item.city.cityKey];
+      const pin=cardPins[item.key];
       if(!pin) return;
       const rect=clampRect(pin.xPct*width,pin.yPct*height);
-      pinnedCardRects[item.city.cityKey]=rect;
+      pinnedCardRects[item.key]=rect;
       placed.push(rect);
     });
 
-    provinceFocusCities.forEach((item,index)=>{
-      const card=cards[index];
-      if(!card) return;
-      const point=points[index];
+    // 【同锚点错开】同一路线的多条经历共用一个锚点：按组内序号递增搜索半径并交替弯向，
+    // 否则多条连线会完全重叠成一条扇形射线
+    const anchorGroups=new Map();
+    provinceFocusCities.forEach(item=>{
+      const anchorKey=Array.isArray(item.anchor)?item.anchor.join(','):String(item.anchor);
+      const list=anchorGroups.get(anchorKey)||[];
+      list.push(item.key);
+      anchorGroups.set(anchorKey,list);
+    });
+    const anchorOrd=new Map();
+    anchorGroups.forEach(list=>list.forEach((key,i)=>anchorOrd.set(key,i)));
+
+    cards.forEach((card,index)=>{
+      const item=byKey.get(card.dataset.cardKey);
+      if(!item) return;
+      const point=points.get(item.key);
       if(!point||!Number.isFinite(point[0])||!Number.isFinite(point[1])) return;
-      const bendSign=index%2===0?1:-1;
-      const pinned=pinnedCardRects[item.city.cityKey];
+      const groupOrd=anchorOrd.get(item.key)||0;
+      const groupSize=(anchorGroups.get(Array.isArray(item.anchor)?item.anchor.join(','):String(item.anchor))||[1]).length;
+      const bendSign=groupSize>1?(groupOrd%2===0?1:-1):(index%2===0?1:-1);
+      const pinned=pinnedCardRects[item.key];
       // 已摆放卡片：位置冻结（初始摆放与鼠标拖动是仅有的两种定位来源），布局绝不改写
       const prevX=parseFloat(card.style.left),prevY=parseFloat(card.style.top);
       const hasPrev=Number.isFinite(prevX)&&Number.isFinite(prevY);
-      const radii=mobile?[48,86,128,170]:[96,138,184,232,284,344,410];
+      const radii=(mobile?[48,86,128,170]:[96,138,184,232,284,344,410]).map(r=>r+groupOrd*14);
       const angles=[-35,35,-145,145,-75,75,-105,105,0,180];
       const anchorOf=rect=>({
         x:Math.max(rect.x,Math.min(point[0],rect.x+rect.w)),
@@ -9716,19 +10237,19 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       card.style.top=best.y+'px';
 
       const line=document.createElementNS('http://www.w3.org/2000/svg','path');
-      line.setAttribute('data-city',item.city.cityKey);
+      line.setAttribute('data-card-key',item.key);
       line.setAttribute('d',provinceCardLinkPath(point,best,bendSign));
       const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
       dot.setAttribute('cx',point[0]);dot.setAttribute('cy',point[1]);dot.setAttribute('r','3');
       provinceFocusLines.append(line,dot);
     });
     // 摆放完成 → 写入位置缓存：此后任何卡片重建（视图切换/省份点击/空白点击）都直接落回此位置
-    cards.forEach((c,i)=>{
-      const it=provinceFocusCities[i];
+    cards.forEach(c=>{
+      const it=byKey.get(c.dataset.cardKey);
       if(!it) return;
       const px=parseFloat(c.style.left),py=parseFloat(c.style.top);
       if(!Number.isFinite(px)||!Number.isFinite(py)) return;
-      cardPosCache[it.city.cityKey]={xPct:+(px/width).toFixed(4),yPct:+(py/height).toFixed(4)};
+      cardPosCache[it.key]={xPct:+(px/width).toFixed(4),yPct:+(py/height).toFixed(4)};
     });
     saveCardPosCache();
     provinceFocusLastPoints=points;   // 建立平移检测基线：此后纯平移 → 卡片整体跟随
@@ -9774,9 +10295,8 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     return 'video/mp4';
   }
   function folderYearOf(meta){
-    const months=Array.isArray(meta&&meta.visitMonths)?meta.visitMonths.filter(month=>/^\d{4}/.test(String(month||''))):[];
-    if(!months.length&&meta&&/^\d{4}/.test(String(meta.visitMonth||''))) months.push(meta.visitMonth);
-    return months.length?months.slice().sort()[0].slice(0,4):FOLDER_UNDATED;
+    const months=getRouteStats(meta).months;
+    return months.length?months[0].slice(0,4):FOLDER_UNDATED;
   }
   function folderPointOf(cityKey){
     try{return cityPoints.find(point=>point&&point.cityKey===cityKey)||null;}catch(e){return null;}
@@ -9942,35 +10462,47 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         albumByData.set(photo.dataUrl,'photos/'+String(index+1).padStart(3,'0')+'-'+(photo.id||(index+1))+'.'+folderExtOf(photo.dataUrl));
       }
     });
-    let attractions=[];
-    try{attractions=JSON.parse(JSON.stringify(meta.attractions||[]));}catch(e){}
-    const attractionRoot=await fsEnsureDir(cityDir,'景点');
-    for(const entry of await fsList(attractionRoot)) await fsRemove(attractionRoot,entry.name);
-    for(let index=0;index<attractions.length;index++){
-      const attraction=attractions[index],list=Array.isArray(attraction.photos)?attraction.photos:[];
-      if(!list.length) continue;
-      const dirName=folderSafeName(String(index+1).padStart(2,'0')+'-'+(attraction.name||('景点'+(index+1))));
-      const attractionDir=await fsEnsureDir(attractionRoot,dirName);
-      for(let photoIndex=0;photoIndex<list.length;photoIndex++){
-        const photo=list[photoIndex]||{},dataUrl=String(photo.dataUrl||'');
-        const albumItem=photo.id?albumById.get(String(photo.id)):null;
-        if(albumItem){Object.assign(photo,albumItem);continue;}
-        if(photo.kind==='video'){
-          const original=meta.attractions[index].photos[photoIndex];
-          const sourceName=String(photoIndex+1).padStart(3,'0')+folderVideoExt(original);
-          const posterName=String(photoIndex+1).padStart(3,'0')+'.jpg';
-          if(original.blob instanceof Blob) await fsWriteFile(attractionDir,sourceName,original.blob);
-          if(/^data:image\//.test(dataUrl)) await fsWriteFile(attractionDir,posterName,dataUrlToBlob(dataUrl));
-          photo.file='景点/'+dirName+'/'+sourceName;
-          photo.poster='景点/'+dirName+'/'+posterName;
-          continue;
+    let routes=[];
+    try{routes=JSON.parse(JSON.stringify(meta.attractions||[]));}catch(e){}
+    const routeRoot=await fsEnsureDir(cityDir,ROUTE_DIR_NAME);
+    for(const entry of await fsList(routeRoot)) await fsRemove(routeRoot,entry.name);
+    // 旧目录名（景点）已废弃，直接移除，避免资料文件夹里残留两套目录
+    if(LEGACY_ROUTE_DIR_NAME!==ROUTE_DIR_NAME) await fsRemove(cityDir,LEGACY_ROUTE_DIR_NAME);
+    for(let index=0;index<routes.length;index++){
+      const route=routes[index];
+      const visits=Array.isArray(route.visits)?route.visits:[];
+      if(!visits.length) continue;
+      const dirName=folderSafeName(String(index+1).padStart(2,'0')+'-'+(route.name||('路线'+(index+1))));
+      const routeDir=await fsEnsureDir(routeRoot,dirName);
+      for(let visitIndex=0;visitIndex<visits.length;visitIndex++){
+        const visit=visits[visitIndex]||{};
+        const list=Array.isArray(visit.photos)?visit.photos:[];
+        if(!list.length) continue;
+        // 文件名 = 经历序号-照片序号（同一路线下扁平存放，靠前缀区分经历）
+        const visitTag=String(visitIndex+1).padStart(2,'0');
+        for(let photoIndex=0;photoIndex<list.length;photoIndex++){
+          const photo=list[photoIndex]||{},dataUrl=String(photo.dataUrl||'');
+          const albumItem=photo.id?albumById.get(String(photo.id)):null;
+          if(albumItem){Object.assign(photo,albumItem);continue;}
+          const fileBase=visitTag+'-'+String(photoIndex+1).padStart(3,'0');
+          if(photo.kind==='video'){
+            const originalList=((meta.attractions[index].visits||[])[visitIndex]||{}).photos||[];
+            const original=originalList[photoIndex]||{};
+            const sourceName=fileBase+folderVideoExt(original);
+            const posterName=fileBase+'.jpg';
+            if(original.blob instanceof Blob) await fsWriteFile(routeDir,sourceName,original.blob);
+            if(/^data:image\//.test(dataUrl)) await fsWriteFile(routeDir,posterName,dataUrlToBlob(dataUrl));
+            photo.file=ROUTE_DIR_NAME+'/'+dirName+'/'+sourceName;
+            photo.poster=ROUTE_DIR_NAME+'/'+dirName+'/'+posterName;
+            continue;
+          }
+          photo.kind='image';
+          if(!/^data:/.test(dataUrl)) continue;
+          if(albumByData.has(dataUrl)){photo.file=albumByData.get(dataUrl);continue;}
+          const name=fileBase+'.'+folderExtOf(dataUrl);
+          await fsWriteFile(routeDir,name,dataUrlToBlob(dataUrl));
+          photo.file=ROUTE_DIR_NAME+'/'+dirName+'/'+name;
         }
-        photo.kind='image';
-        if(!/^data:/.test(dataUrl)) continue;
-        if(albumByData.has(dataUrl)){photo.file=albumByData.get(dataUrl);continue;}
-        const name=String(photoIndex+1).padStart(3,'0')+'.'+folderExtOf(dataUrl);
-        await fsWriteFile(attractionDir,name,dataUrlToBlob(dataUrl));
-        photo.file='景点/'+dirName+'/'+name;
       }
     }
     const cover=String(meta.coverImage||''),coverName=cover?'cover.'+folderExtOf(cover):'';
@@ -9981,12 +10513,21 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const point=folderPointOf(cityKey);
     const info={
       app:'记录我的中国行',cityKey,cityName,adcode:(point&&point.adcode)||meta.adcode||'',year,
-      visitMonths:meta.visitMonths||(meta.visitMonth?[meta.visitMonth]:[]),rating:meta.rating||0,
+      birthMonth:meta.birthMonth||'',rating:meta.rating||0,
       description:meta.description||'',tags:meta.tags||[],cover:coverName,photos:photoFiles,updatedAt:Date.now(),
-      attractions:attractions.map(attraction=>({
-        id:attraction.id,name:attraction.name,notes:attraction.notes,visitDate:attraction.visitDate,
-        photos:(attraction.photos||[]).map(photo=>({file:photo.file||'',name:photo.name||'',id:photo.id||'',
-          kind:photo.kind||'image',poster:photo.poster||'',mime:photo.mime||'',duration:photo.duration||0,size:photo.size||0}))
+      attractions:routes.map(route=>({
+        id:route.id,name:route.name,
+        difficulty:route.difficulty||'',
+        distanceKm:route.distanceKm||0,
+        elevationGain:route.elevationGain||0,
+        maxAltitude:route.maxAltitude||0,
+        lng:route.lng==null?null:route.lng,
+        lat:route.lat==null?null:route.lat,
+        visits:(route.visits||[]).map(visit=>({
+          id:visit.id,visitDate:visit.visitDate||'',notes:visit.notes||'',
+          photos:(visit.photos||[]).map(photo=>({file:photo.file||'',name:photo.name||'',id:photo.id||'',
+            kind:photo.kind||'image',poster:photo.poster||'',mime:photo.mime||'',duration:photo.duration||0,size:photo.size||0}))
+        }))
       }))
     };
     await fsWriteFile(cityDir,'info.json',JSON.stringify(info,null,2));
@@ -10043,7 +10584,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         app:'记录我的中国行',generatedAt:new Date().toISOString(),cityCount:written.length,
         cities:written.map(item=>({year:item.year,cityName:item.cityName,photoCount:item.photoCount}))
       },null,2));
-      await fsWriteFile(root,'使用说明.txt','这是「记录我的中国行」的本机资料文件夹。\n\n目录规则：年份 / 城市 /（info.json 记录文字资料，photos 为照片，videos 为视频原文件与首帧封面，景点为景点照片，cover 为城市封面）\n换设备：复制整个「旅行资料」文件夹，在新设备直接选择它或它的上一级目录，再确认加载。\n请勿手动修改文件名。\n');
+      await fsWriteFile(root,'使用说明.txt','这是「记录我的中国行」的本机资料文件夹。\n\n目录规则：年份 / 城市 /（info.json 记录文字资料，photos 为照片，videos 为视频原文件与首帧封面，徒步路线为路线照片，cover 为城市封面）\n换设备：复制整个「旅行资料」文件夹，在新设备直接选择它或它的上一级目录，再确认加载。\n请勿手动修改文件名。\n');
       setFolderStatus('已同步到资料文件夹（'+written.length+' 个城市）','ok');
       if(opts.notify) toast('已同步到资料文件夹：'+written.length+' 个城市');
     }catch(error){
@@ -10119,25 +10660,43 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
             const cityDir=await fsSubDir(yearDir,cityEntry.name),info=await fsReadJson(cityDir,'info.json');
             if(!info||!info.cityKey) continue;
             const meta={
-              cityKey:info.cityKey,cityName:info.cityName||'',visitMonth:(info.visitMonths&&info.visitMonths[0])||'',
-              visitMonths:info.visitMonths||[],rating:info.rating||0,description:info.description||'',tags:info.tags||[],
+              cityKey:info.cityKey,cityName:info.cityName||'',birthMonth:info.birthMonth||'',
+              visitMonth:(info.visitMonths&&info.visitMonths[0])||'',  // 旧字段：仅用于家乡出生年月迁移
+              visitMonths:info.visitMonths||[],
+              rating:info.rating||0,description:info.description||'',tags:info.tags||[],
               attractions:info.attractions||[],coverImage:'',updatedAt:Date.now()
             };
+            normalizeCityMeta(meta);
             if(info.cover) meta.coverImage=await fsReadDataUrl(cityDir,info.cover);
+            // 兼容旧目录名：info.json 记录的是写入时的目录名，实际目录可能是另一套
+            const routeDirName=(await fsSubDir(cityDir,ROUTE_DIR_NAME))?ROUTE_DIR_NAME:
+              ((await fsSubDir(cityDir,LEGACY_ROUTE_DIR_NAME))?LEGACY_ROUTE_DIR_NAME:'');
+            const rewriteRoutePath=value=>{
+              const file=String(value||'');
+              if(!file||!routeDirName) return file;
+              if(file.startsWith(ROUTE_DIR_NAME+'/')) return routeDirName+'/'+file.slice(ROUTE_DIR_NAME.length+1);
+              if(file.startsWith(LEGACY_ROUTE_DIR_NAME+'/')) return routeDirName+'/'+file.slice(LEGACY_ROUTE_DIR_NAME.length+1);
+              return file;
+            };
             for(const attraction of meta.attractions){
-              for(const photo of attraction.photos||[]){
-                // 旧版景点只保存视频封面；仅用同一城市的媒体编号恢复原视频关联。
-                if(!photo.kind&&photo.id){
-                  const matches=(info.photos||[]).filter(item=>{
-                    const match=/(?:^|\/)(?:\d+)-(\d+)\./.exec(item.file||'');
-                    return match&&match[1]===String(photo.id);
-                  });
-                  if(matches.length===1) Object.assign(photo,matches[0]);
+              // 新结构：路线 → 经历 → 照片（旧结构已由 normalizeCityMeta 迁移进 visits[]）
+              for(const visit of attraction.visits||[]){
+                for(const photo of visit.photos||[]){
+                  // 旧版景点只保存视频封面；仅用同一城市的媒体编号恢复原视频关联。
+                  if(!photo.kind&&photo.id){
+                    const matches=(info.photos||[]).filter(item=>{
+                      const match=/(?:^|\/)(?:\d+)-(\d+)\./.exec(item.file||'');
+                      return match&&match[1]===String(photo.id);
+                    });
+                    if(matches.length===1) Object.assign(photo,matches[0]);
+                  }
+                  if(!photo.file) continue;
+                  if(photo.file) photo.file=rewriteRoutePath(photo.file);
+                  if(photo.poster) photo.poster=rewriteRoutePath(photo.poster);
+                  const media=await readFolderMedia(cityDir,photo);
+                  if(media) Object.assign(photo,media);
+                  else stats.missing+=1;
                 }
-                if(!photo.file) continue;
-                const media=await readFolderMedia(cityDir,photo);
-                if(media) Object.assign(photo,media);
-                else stats.missing+=1;
               }
             }
             await putLocalMeta(meta);
@@ -10778,7 +11337,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   }
   function hasLocalTravelData(photos,metas){
     return photos.length>0||metas.some(m=>m&&(
-      m.visitMonth||(m.visitMonths&&m.visitMonths.length)||m.description||m.rating||(m.tags&&m.tags.length)||(m.attractions&&m.attractions.length)||m.coverImage
+      m.birthMonth||m.visitMonth||(m.visitMonths&&m.visitMonths.length)||m.description||m.rating||(m.tags&&m.tags.length)||(m.attractions&&m.attractions.length)||m.coverImage
     ));
   }
 
@@ -10803,19 +11362,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         meta.coverCloudId=meta.coverCloudId||newCloudId();
         meta.coverStoragePath=await uploadCloudImage(meta.coverImage,'covers',meta.coverCloudId);
       }
-      const attractions=meta.attractions||[];
-      for(const att of attractions){
-        for(const ph of (att.photos||[])){
-          ph.cloudId=ph.cloudId||newCloudId();
-          const shared=ph.dataUrl?photoPathByDataUrl.get(ph.dataUrl):null;
-          if(shared){ph.storagePath=shared.storagePath;ph.cloudId=shared.cloudId;}
-          else if(ph.dataUrl&&!isOssPath(ph.storagePath)) ph.storagePath=await uploadCloudImage(ph.dataUrl,'attractions',ph.cloudId);
-        }
+      const routes=meta.attractions||[];
+      for(const ph of routeMediaList(routes)){
+        ph.cloudId=ph.cloudId||newCloudId();
+        const shared=ph.dataUrl?photoPathByDataUrl.get(ph.dataUrl):null;
+        if(shared){ph.storagePath=shared.storagePath;ph.cloudId=shared.cloudId;}
+        else if(ph.dataUrl&&!isOssPath(ph.storagePath)) ph.storagePath=await uploadCloudImage(ph.dataUrl,'attractions',ph.cloudId);
       }
       await putLocalMeta(meta);
       const clean=JSON.parse(JSON.stringify(meta));
       delete clean.coverImage;
-      (clean.attractions||[]).forEach(att=>(att.photos||[]).forEach(ph=>delete ph.dataUrl));
+      routeMediaList(clean.attractions).forEach(ph=>delete ph.dataUrl);
       cloudMetas.push(clean);
     }
     const profile=getUserProfile();
@@ -10903,7 +11460,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     (snapshot&&snapshot.photos||[]).forEach(p=>{if(p.storagePath) paths.add(p.storagePath);});
     (snapshot&&snapshot.cityMeta||[]).forEach(meta=>{
       if(meta.coverStoragePath) paths.add(meta.coverStoragePath);
-      (meta.attractions||[]).forEach(att=>(att.photos||[]).forEach(ph=>{if(ph.storagePath) paths.add(ph.storagePath);}));
+      routeMediaList(meta.attractions).forEach(ph=>{if(ph.storagePath) paths.add(ph.storagePath);});
     });
     return paths;
   }
@@ -10914,9 +11471,9 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     });
     metas.forEach(meta=>{
       if(meta.coverStoragePath&&meta.coverImage) cache.set(meta.coverStoragePath,meta.coverImage);
-      (meta.attractions||[]).forEach(att=>(att.photos||[]).forEach(photo=>{
+      routeMediaList(meta.attractions).forEach(photo=>{
         if(photo.storagePath&&photo.dataUrl) cache.set(photo.storagePath,photo.dataUrl);
-      }));
+      });
     });
     return cache;
   }
@@ -10975,15 +11532,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       }
       const preparedMetas=[];
       for(const remoteMeta of (snapshot.cityMeta||[])){
-        const meta=JSON.parse(JSON.stringify(remoteMeta));
+        const meta=normalizeCityMeta(JSON.parse(JSON.stringify(remoteMeta)));
         meta.coverImage=await imageLoader.load(meta.coverStoragePath);
         for(const att of (meta.attractions||[])){
-          const availablePhotos=[];
-          for(const ph of (att.photos||[])){
-            ph.dataUrl=await imageLoader.load(ph.storagePath);
-            if(ph.dataUrl) availablePhotos.push(ph);
+          for(const visit of (att.visits||[])){
+            const availablePhotos=[];
+            for(const ph of (visit.photos||[])){
+              ph.dataUrl=await imageLoader.load(ph.storagePath);
+              if(ph.dataUrl) availablePhotos.push(ph);
+            }
+            visit.photos=availablePhotos;
           }
-          att.photos=availablePhotos;
         }
         preparedMetas.push(meta);
       }
@@ -11031,15 +11590,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const existingMetaKeys=new Set(localMetas.map(m=>m.cityKey));
       for(const remoteMeta of (snapshot.cityMeta||[])){
         if(existingMetaKeys.has(remoteMeta.cityKey)) continue;
-        const meta=JSON.parse(JSON.stringify(remoteMeta));
+        const meta=normalizeCityMeta(JSON.parse(JSON.stringify(remoteMeta)));
         meta.coverImage=await imageLoader.load(meta.coverStoragePath);
         for(const att of (meta.attractions||[])){
-          const availablePhotos=[];
-          for(const ph of (att.photos||[])){
-            ph.dataUrl=await imageLoader.load(ph.storagePath);
-            if(ph.dataUrl) availablePhotos.push(ph);
+          for(const visit of (att.visits||[])){
+            const availablePhotos=[];
+            for(const ph of (visit.photos||[])){
+              ph.dataUrl=await imageLoader.load(ph.storagePath);
+              if(ph.dataUrl) availablePhotos.push(ph);
+            }
+            visit.photos=availablePhotos;
           }
-          att.photos=availablePhotos;
         }
         await putLocalMeta(meta);
         existingMetaKeys.add(meta.cityKey);
@@ -11273,7 +11834,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     }
   });
   signOutBtn.addEventListener('click',async ()=>{
-    const clearLocalData=confirm('退出账号后，是否清除当前浏览器中的本地旅行资料？\n\n选择“确定”：清除照片、城市记录、景点和点评（保留本机视频及资料文件夹备份）。\n选择“取消”：保留本地旅行资料，只退出账号。');
+    const clearLocalData=confirm('退出账号后，是否清除当前浏览器中的本地旅行资料？\n\n选择“确定”：清除照片、城市记录、徒步路线和点评（保留本机视频及资料文件夹备份）。\n选择“取消”：保留本地旅行资料，只退出账号。');
     signOutBtn.disabled=true;
     try{
       cloudSigningOut=true;
@@ -11457,9 +12018,9 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const id=await addPhoto(record);
     return {...record,id};
   }
-  async function importAttractionMedia(file,city,attraction,order){
-    if(!attraction) throw new Error('未指定景点');
-    attraction.photos=Array.isArray(attraction.photos)?attraction.photos:[];
+  async function importAttractionMedia(file,city,visit,order){
+    if(!visit) throw new Error('未指定徒步经历');
+    visit.photos=Array.isArray(visit.photos)?visit.photos:[];
     let media;
     if(isVideoFile(file)){
       const record=await importLocalVideo(file,city,order);
@@ -11469,7 +12030,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const id=await addPhoto({cityKey:city.cityKey,cityName:city.name,adcode:city.adcode,name:file.name,dataUrl,timestamp:Date.now(),order});
       media={id,name:file.name,kind:'image',dataUrl};
     }
-    attraction.photos.push(media);
+    visit.photos.push(media);
     return media;
   }
   function countMedia(items){
@@ -11663,7 +12224,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   const timelineModalOverlay=$('timelineModalOverlay'), timelineModalBody=$('timelineModalBody');
   const tlCloseBtn=$('tlCloseBtn');
 
-  // 收集已点亮城市并按游玩年月升序排列（时间轴从早到晚）
+  // 收集已点亮城市并按徒步路线最早日期升序排列（时间轴从早到晚）
   // 【排序优化】同年同月多城市支持：按景点游玩具体日期(visitDate)的"日"值细分排序
   async function collectTimelineCities(){
     const items=[];
@@ -11671,25 +12232,23 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const cp=cityPoints.find(c=>c.cityKey===cityKey);
       if(!cp) continue;
       const meta=await getCityMeta(cityKey);
-      // 【排序优化】提取该城市所有景点的游玩日期，取最早的一天作为同年同月内排序依据
-      // visitDate 格式 'YYYY-MM-DD'，无景点或无日期则 earliestDay=null（随机排放）
+      const routeStats=getRouteStats(meta);
+      // 【排序优化】提取该城市所有徒步路线的日期，取最早的一天作为同年同月内排序依据
+      // visitDate 格式 'YYYY-MM-DD'，无路线或无日期则 earliestDay=null（随机排放）
       let earliestDay=null;
-      const atts=meta.attractions||[];
-      for(const att of atts){
-        if(att.visitDate){
-          // 提取"日"部分（DD），转为数值用于同年同月内比较
-          const parts=att.visitDate.split('-');
-          if(parts.length>=3){
-            const day=parseInt(parts[2],10);
-            if(!isNaN(day)){
-              if(earliestDay===null||day<earliestDay) earliestDay=day;
-            }
+      for(const date of routeStats.dates){
+        // 提取"日"部分（DD），转为数值用于同年同月内比较
+        const parts=date.split('-');
+        if(parts.length>=3){
+          const day=parseInt(parts[2],10);
+          if(!isNaN(day)){
+            if(earliestDay===null||day<earliestDay) earliestDay=day;
           }
         }
       }
       items.push({
         cityKey, name:cp.name, value:cp.value, adcode:cp.adcode,
-        visitMonth:meta.visitMonth||'',
+        visitMonth:routeStats.firstMonth||'',
         coverImage:meta.coverImage||'',
         photoCount:photoCountByCity.get(cityKey)||0,
         earliestDay  // 【排序优化】同年同月内排序依据：最早游玩日(1~31)，null=无日期
@@ -11719,7 +12278,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   }
 
   /* ===================== 人生地图足迹（家 → 按时间顺序飞行回放） =====================
-   * 数据：collectTimelineCities() 已按 游玩年月→当月最早日 排序，直接作为航线顺序
+   * 数据：collectTimelineCities() 已按 徒步路线最早月份→当月最早日 排序，直接作为航线顺序
    * 视觉：虚线预示全程 → 亮线逐段点亮（双层描边=光晕+亮芯）→ 小飞机沿贝塞尔曲线飞行
    *       到站时城市点脉冲扩散；家城市以"🏠 家"胶囊标记
    * 主题：深色=青蓝航线，浅色=橙色航线，全部走 CSS 变量随主题自动切换
@@ -12283,8 +12842,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const city=cityPoints.find(c=>c.cityKey===cityKey);
       if(!city||!city.value) continue;
       const meta=await getCityMeta(cityKey);
-      const dates=getVisitMonths(meta).concat(meta.visitMonth||'',(meta.attractions||[]).map(a=>a.visitDate||''))
-        .filter(date=>/^\d{4}-(0[1-9]|1[0-2])(?:-\d{2})?$/.test(date)).sort();
+      const dates=getRouteStats(meta).dates.slice();
       const years=[...new Set(dates.map(date=>date.slice(0,4)))];
       cities.push({...city,years,dates,cover:meta.coverImage||'',
         rating:Math.max(0,Math.min(5,Math.round(Number(meta.rating)||0))),
@@ -14174,12 +14732,13 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
    * 打开景点详情页
    * 从「全部」网格卡片点击进入，加载城市元数据中的景点列表
    * @param {Object} city - 城市信息 {name,value,cityKey,adcode}
+   * @param {number} [focusRouteIdx] - 需要滚动定位到的路线下标（省份经历卡点击时传入）
    */
   // ===== 打开城市详情页（虚化封面背景 + 金色标题 + 景点网格）=====
   // 缓存当前详情页的城市元数据，供编辑面板复用
   let attDetailMeta=null;
   let attDetailCoverUrl='';
-  async function openAttractionDetail(city){
+  async function openAttractionDetail(city,focusRouteIdx){
     attDetailCity=city;
     attDetailCityName.textContent=city.name;
     attDetailBody.innerHTML='<div class="att-detail-empty"><span class="big">加载中…</span></div>';
@@ -14215,6 +14774,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       // 景点标题：已删除「景点 · 数量」字样，仅保留元素占位（隐藏不显示）
       attGridTitle.innerHTML='';
       renderAttractionDetailList(attractions);
+      // 省份经历卡点击进入：滚动定位到对应路线（等布局完成后再滚，避免定位到未排版的位置）
+      if(Number.isInteger(focusRouteIdx)&&focusRouteIdx>=0&&focusRouteIdx<attractions.length){
+        const target=attDetailBody.querySelector('.att-card[data-route-index="'+focusRouteIdx+'"]');
+        if(target){
+          requestAnimationFrame(()=>{
+            requestAnimationFrame(()=>{
+              try{target.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){target.scrollIntoView();}
+            });
+          });
+        }
+      }
       // ===== 新增：填充城市基础数据玻璃信息栏（4项实时数据） =====
       fillCityInfoBar(meta,attractions,city.cityKey);
       // ===== 新增：初始化角落漂浮粒子（每次打开重置） =====
@@ -14248,27 +14818,27 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   }
 
   /* ================================================================ */
-  /* ===== 新增：城市基础数据玻璃信息栏填充（游玩年月/星级/景点数/照片数）===== */
+  /* ===== 新增：城市基础数据玻璃信息栏填充（路线时间/星级/路线数/照片数）===== */
   /* ================================================================ */
   function fillCityInfoBar(meta,attractions,cityKey){
     const elMonth=document.getElementById('attInfoMonth');
     const elRating=document.getElementById('attInfoRating');
     const elCount=document.getElementById('attInfoCount');
     const elPhotos=document.getElementById('attInfoPhotos');
-    // 多次游玩年月
+    // 徒步路线时间范围
     if(elMonth){
-      const months=getVisitMonths(meta);
-      elMonth.textContent=months.length?months.map(formatMonth).join(' / '):'未记录';
-      elMonth.classList.toggle('is-multi-month',months.length>1);
-      elMonth.title=months.length?months.map((month,index)=>'第'+(index+1)+'次：'+formatMonth(month)).join('\n'):'';
+      const stats=getRouteStats(meta);
+      elMonth.textContent=formatRouteTimeRange(stats);
+      elMonth.classList.toggle('is-multi-month',stats.months.length>1);
+      elMonth.title=stats.routes.length?stats.routes.map((route,index)=>'第'+(index+1)+'条路线：'+(route.name||'未命名路线')+(latestVisitDate(route)?'（'+latestVisitDate(route)+'）':'')).join('\n'):'';
     }
     // 推荐星级（带星符号 + 微光）
     if(elRating){
       const r=meta.rating||0;
       elRating.innerHTML='<span class="att-info-stars">'+renderStars(r)+'</span>';
     }
-    // 景点总数
-    if(elCount){elCount.textContent=(attractions||[]).length+' 个';}
+    // 徒步路线条数（即游玩次数）
+    if(elCount){elCount.textContent=(attractions||[]).length+' 条';}
     // 相册影像数（该城市相册全部照片总数，含未挂到景点的照片，而非仅景点照片合计）
     if(elPhotos){
       const total=(cityKey&&photoCountByCity&&photoCountByCity.has(cityKey))?photoCountByCity.get(cityKey):0;
@@ -14348,16 +14918,16 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   }
 
   /**
-   * 渲染景点网格卡片（参考图2 城市速览卡片布局）
-   * 单击 → 弹出景点编辑面板；双击 → 唤起 1.5 倍旋转木马（沿用虚化封面背景）
-   * @param {Array} attractions - 景点数组 [{id,name,photos:[{dataUrl}],notes,visitDate}]
+   * 渲染徒步路线网格卡片（参考图2 城市速览卡片布局）
+   * 主标题 = 路线名称，副标题 = 城市名称；卡内列出该路线下的每条徒步经历
+   * @param {Array} attractions - 徒步路线数组 [{id,name,difficulty,distanceKm,elevationGain,maxAltitude,lng,lat,visits:[...]}]
    */
   function renderAttractionDetailList(attractions){
     attDetailBody.innerHTML='';
     const hintEl=$('attGridHint');
     if(!attractions.length){
       if(hintEl) hintEl.style.display='none';
-      attDetailBody.innerHTML='<div class="att-detail-empty"><span class="big">暂无景点</span><span class="sub">在城市编辑弹窗中添加景点后，将在此处展示</span></div>';
+      attDetailBody.innerHTML='<div class="att-detail-empty"><span class="big">暂无徒步路线</span><span class="sub">在城市编辑弹窗中添加徒步路线后，将在此处展示</span></div>';
       return;
     }
     if(hintEl) hintEl.style.display='';
@@ -14375,10 +14945,11 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     attractions.forEach((att,idx)=>{
       const card=document.createElement('div');
       card.className='att-card';
-      // 卡片背景：景点第一张照片
-      const hasPhoto=att.photos&&att.photos.length;
-      if(hasPhoto){
-        card.style.backgroundImage='url("'+att.photos[0].dataUrl+'")';
+      card.dataset.routeIndex=String(idx);   // 省份经历卡点击后据此滚动定位到该条路线
+      // 卡片背景：该路线下第一张经历照片
+      const photos=routeVisitPhotos(att);
+      if(photos.length){
+        card.style.backgroundImage='url("'+photos[0].dataUrl+'")';
       }else{
         // 无照片占位
         const empty=document.createElement('div');
@@ -14386,103 +14957,288 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         empty.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>';
         card.appendChild(empty);
       }
-      // 卡片文字层：顶部城市名 + 主标题景点名 + 游玩年月日 + 底部备注
+      // 卡片文字层：主标题路线名 + 副标题城市名 + 难度徽章 + 指标 + 坐标 + 经历列表
       const text=document.createElement('div');
       text.className='att-card-text';
+      const nameEl=document.createElement('div');
+      nameEl.className='att-card-name';
+      nameEl.textContent=att.name||('路线 '+(idx+1));
       const cityEl=document.createElement('div');
       cityEl.className='att-card-city';
       cityEl.textContent=cityName;
-      const nameEl=document.createElement('div');
-      nameEl.className='att-card-name';
-      nameEl.textContent=att.name||('景点 '+(idx+1));
-      text.append(cityEl,nameEl);
-      // 游玩年月日（YYYY-MM-DD 格式化为 YYYY年M月D日）
-      if(att.visitDate){
-        const dateEl=document.createElement('div');
-        dateEl.className='att-card-date';
-        const parts=att.visitDate.split('-');
-        if(parts.length===3){
-          dateEl.textContent=parseInt(parts[0])+'年'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日';
-        }else{
-          dateEl.textContent=att.visitDate;
-        }
-        text.appendChild(dateEl);
+      text.append(nameEl,cityEl);
+      // 难度徽章
+      if(att.difficulty){
+        const badge=document.createElement('div');
+        badge.className='att-card-badge';
+        badge.innerHTML=routeDifficultyBadge(att.difficulty);
+        text.appendChild(badge);
       }
-      if(att.notes){
-        const notesEl=document.createElement('div');
-        notesEl.className='att-card-notes';
-        notesEl.textContent=att.notes;
-        text.appendChild(notesEl);
+      // 指标行：里程 / 爬升 / 最高海拔
+      const metricsText=routeMetricsText(att);
+      if(metricsText){
+        const metricsEl=document.createElement('div');
+        metricsEl.className='route-metrics';
+        metricsEl.textContent=metricsText;
+        text.appendChild(metricsEl);
+      }
+      // 坐标文本（GCJ-02）
+      const coordText=routeCoordText(att);
+      if(coordText){
+        const coordEl=document.createElement('div');
+        coordEl.className='route-coord';
+        coordEl.textContent=coordText;
+        coordEl.title='坐标（GCJ-02）';
+        text.appendChild(coordEl);
+      }
+      // 徒步经历列表：日期 / 备注 / 媒体 / 编辑
+      const visits=routeVisits(att);
+      if(visits.length){
+        const list=document.createElement('div');
+        list.className='att-card-visits';
+        visits.forEach((visit,vi)=>{
+          const row=document.createElement('div');
+          row.className='att-card-visit';
+          const dateEl=document.createElement('span');
+          dateEl.className='att-card-visit-date';
+          dateEl.textContent=visit.visitDate||'未记录日期';
+          const notesEl=document.createElement('span');
+          notesEl.className='att-card-visit-notes';
+          notesEl.textContent=visit.notes||'';
+          const mediaEl=document.createElement('span');
+          mediaEl.className='att-card-visit-media';
+          mediaEl.textContent=formatMediaCounts(countMedia(visit.photos||[]))||'';
+          const editVisitBtn=document.createElement('button');
+          editVisitBtn.type='button';
+          editVisitBtn.className='att-card-visit-btn';
+          editVisitBtn.textContent='编辑';
+          editVisitBtn.title='编辑这条徒步经历';
+          editVisitBtn.addEventListener('click',event=>{
+            event.stopPropagation();
+            if(attDetailCity) openVisitEditor(attDetailCity.cityKey,idx,vi,'detail');
+          });
+          row.append(dateEl,notesEl,mediaEl,editVisitBtn);
+          list.appendChild(row);
+        });
+        text.appendChild(list);
       }
       card.appendChild(text);
       // 卡片右上角分别显示照片与视频数量
       const pcount=document.createElement('div');
       pcount.className='att-card-media-count';
-      pcount.innerHTML=attractionMediaBadgeHtml(att.photos||[]);
-      pcount.title=formatMediaCounts(countMedia(att.photos||[]))||'暂无照片或视频';
+      pcount.innerHTML=attractionMediaBadgeHtml(photos);
+      pcount.title=formatMediaCounts(countMedia(photos))||'暂无照片或视频';
       card.appendChild(pcount);
 
       const editBtn=document.createElement('button');
       editBtn.type='button';
       editBtn.className='att-card-edit-btn';
-      editBtn.textContent='编辑景点';
-      editBtn.title='编辑景点信息';
-      editBtn.addEventListener('click',event=>{event.stopPropagation();openAttEditPanel(idx);});
+      editBtn.textContent='编辑路线';
+      editBtn.title='在城市编辑弹窗中编辑路线';
+      editBtn.addEventListener('click',event=>{event.stopPropagation();if(attDetailCity) openCityModal(attDetailCity);});
       card.appendChild(editBtn);
 
-      // 交互：单击景点卡片查看照片/视频，右上角按钮进入编辑
+      // 交互：单击路线卡片查看照片/视频，右上角按钮进入编辑
       card.addEventListener('click',()=>{
-        const photos=att.photos||[];
         if(photos.length) openPhotoViewer(photos,0,true,{sizeScale:1.1,bgUrl:attDetailCoverUrl});
-        else toast('该景点暂无照片或视频');
+        else toast('该路线暂无照片或视频');
       });
 
       attDetailBody.appendChild(card);
     });
   }
 
-  /* ===== 景点编辑浮层（单击卡片弹出，字段与原景点管理完全一致）===== */
-  // 打开编辑面板：景点名称、游玩日期、照片上传/删除、景点备注
-  function openAttEditPanel(idx){
-    if(!attDetailCity||!attDetailMeta) return;
-    const att=(attDetailMeta.attractions||[])[idx];
-    if(!att) return;
-    attEditPanel.innerHTML='';
-    // 标题栏
-    const title=document.createElement('div');
-    title.className='att-edit-title';
-    title.innerHTML='<span>'+(att.name||('景点 '+(idx+1)))+'</span>';
-    const xBtn=document.createElement('button');
-    xBtn.className='x'; xBtn.innerHTML='&times;';
-    xBtn.addEventListener('click',closeAttEditPanel);
-    title.appendChild(xBtn);
-    attEditPanel.appendChild(title);
-    // 景点名称
-    const nameRow=document.createElement('div');
-    nameRow.className='att-edit-row';
-    nameRow.innerHTML='<label>景点名称</label>';
-    const nameInput=document.createElement('input');
-    nameInput.value=att.name||''; nameInput.placeholder='景点名称';
-    nameInput.addEventListener('change',()=>attUpdateField(idx,'name',nameInput.value));
-    nameRow.appendChild(nameInput);
-    attEditPanel.appendChild(nameRow);
-    // 游玩日期
-    const dateRow=document.createElement('div');
-    dateRow.className='att-edit-row';
-    dateRow.innerHTML='<label>游玩日期</label>';
-    const dateInput=document.createElement('input');
-    dateInput.type='date'; dateInput.value=att.visitDate||'';
-    dateInput.addEventListener('change',()=>attUpdateField(idx,'visitDate',dateInput.value));
-    dateRow.appendChild(dateInput);
-    attEditPanel.appendChild(dateRow);
-    // 照片缩略图 + 上传（支持拖拽交换位置）
-    const photoRow=document.createElement('div');
-    photoRow.className='att-edit-row';
-    photoRow.innerHTML='<label>景点照片</label>';
-    const thumbs=document.createElement('div');
-    thumbs.className='att-edit-thumbs';
+  /* ================================================================ */
+  /* ===== 徒步经历：canonical 编辑器（游玩日期 / 路线备注 / 路线照片）===== */
+  /* ================================================================ */
+  let routeEditorCtx=null;  // {cityKey, idx, visitIdx, anchor:'modal'|'detail'}
+  // 难度徽章 HTML
+  function routeDifficultyBadge(difficulty){
+    const key=ROUTE_DIFFICULTIES.includes(difficulty)?difficulty:'';
+    if(!key) return '';
+    return '<span class="route-difficulty-badge" data-difficulty="'+key+'">'+DIFFICULTY_LABELS[key]+'</span>';
+  }
+  // 指标行文本：里程 / 爬升 / 最高海拔
+  function routeMetricsText(route){
+    const parts=[];
+    if(route&&route.distanceKm) parts.push(route.distanceKm+' km');
+    if(route&&route.elevationGain) parts.push('爬升 '+route.elevationGain+' m');
+    if(route&&route.maxAltitude) parts.push('最高 '+route.maxAltitude+' m');
+    return parts.join(' · ');
+  }
+  // 卡内路线行第二行：爬升 / 距离（顶层城市卡用，不含最高海拔）
+  // 两项都缺 → 返回空串 → 渲染层整行不渲染，绝不留空行
+  function routeDistanceGainText(route){
+    const parts=[];
+    if(route&&route.elevationGain) parts.push('爬升 '+route.elevationGain+' m');
+    if(route&&route.distanceKm) parts.push('距离 '+route.distanceKm+' km');
+    return parts.join(' · ');
+  }
+  // 坐标文本：GCJ-02，未填写返回空串
+  function routeCoordText(route){
+    if(!route||route.lng==null||route.lat==null) return '';
+    return route.lng.toFixed(4)+', '+route.lat.toFixed(4);
+  }
+  // 路线下全部经历的照片（合并）→ 见数据层 routeVisitPhotos
+  // 取一条路线下的第 visitIdx 条经历（不存在返回 null）
+  function routeVisitAt(route,visitIdx){
+    const visits=routeVisits(route);
+    return visits[visitIdx]||null;
+  }
+  // 保存路线级字段（城市弹窗行内编辑，按类型归一）
+  async function saveRouteField(ctx,field,value){
+    const meta=await getCityMeta(ctx.cityKey);
+    if(!meta.attractions||!meta.attractions[ctx.idx]) return null;
+    const route=meta.attractions[ctx.idx];
+    if(field==='difficulty') route.difficulty=ROUTE_DIFFICULTIES.includes(value)?value:'';
+    else if(field==='distanceKm'||field==='elevationGain'||field==='maxAltitude') route[field]=toRouteNumber(value,0);
+    else if(field==='lng') route.lng=toRouteCoord(value,-180,180);
+    else if(field==='lat') route.lat=toRouteCoord(value,-90,90);
+    else route[field]=value;
+    await saveCityMeta(meta);
+    refreshRouteViews(ctx,meta);
+    return meta;
+  }
+  // 保存经历级字段（体验浮层）
+  async function saveVisitField(ctx,field,value){
+    const meta=await getCityMeta(ctx.cityKey);
+    if(!meta.attractions||!meta.attractions[ctx.idx]) return null;
+    const visit=routeVisitAt(meta.attractions[ctx.idx],ctx.visitIdx);
+    if(!visit) return null;
+    if(field==='visitDate') visit.visitDate=typeof value==='string'?value:'';
+    else if(field==='notes') visit.notes=typeof value==='string'?value:'';
+    await saveCityMeta(meta);
+    refreshRouteViews(ctx,meta);
+    return meta;
+  }
+  // 保存后刷新当前入口的视图
+  function refreshRouteViews(ctx,meta){
+    if(ctx.anchor==='detail'){
+      attDetailMeta=meta;
+      renderAttractionDetailList(meta.attractions||[]);
+    }else{
+      // 城市弹窗：只重绘该路线卡下的经历列表，不整表重绘（避免清空其它未失焦的输入框）
+      renderRouteVisits(ctx.idx,(meta.attractions||[])[ctx.idx]);
+    }
+    renderCityCards();
+  }
+  // 上传经历照片/视频（同步写入城市主相册）
+  async function routeUploadPhotos(ctx,files){
+    if(!ctx||!files||!files.length) return;
+    const meta=await getCityMeta(ctx.cityKey);
+    if(!meta.attractions||!meta.attractions[ctx.idx]) return;
+    const visit=routeVisitAt(meta.attractions[ctx.idx],ctx.visitIdx);
+    if(!visit) return;
+    const city=cityPoints.find(c=>c&&c.cityKey===ctx.cityKey);
+    if(!city) return;
+    const existing=await getPhotosByCity(ctx.cityKey);
+    let baseOrder=existing.length?Math.max(...existing.map(p=>p.order||0)):0;
+    let ok=0,fail=0;
+    for(const f of files){
+      try{
+        baseOrder+=1;
+        await importAttractionMedia(f,city,visit,baseOrder);
+        ok++;
+      }catch(err){ console.error(err); fail++; }
+    }
+    await saveCityMeta(meta);
+    // 更新封面背景（若首张照片变化）
+    const routePhotos=routeVisitPhotos(meta.attractions[ctx.idx]);
+    if(ctx.anchor==='detail'&&!attDetailCoverUrl&&routePhotos.length){
+      attDetailCoverUrl=routePhotos[0].dataUrl;
+      attDetailBg.style.backgroundImage='url("'+attDetailCoverUrl+'")';
+    }
+    refreshRouteViews(ctx,meta);
+    renderRouteEditorPhotos(visit);
+    // 实时同步到城市相册管理（仅当相册弹窗当前就停留在同一城市时）
+    if(currentCity&&currentCity.cityKey===ctx.cityKey){
+      await loadCityPhotos(ctx.cityKey);
+    }
+    await refreshState();
+    if(ok) toast('已上传 '+ok+' 个路线影像'+(fail?('，'+fail+' 个失败'):''));
+    else if(fail) toast('上传失败：'+fail+' 个',true);
+  }
+  // 删除经历照片
+  async function routeDeletePhoto(ctx,pi){
+    const meta=await getCityMeta(ctx.cityKey);
+    if(!meta.attractions||!meta.attractions[ctx.idx]) return;
+    const visit=routeVisitAt(meta.attractions[ctx.idx],ctx.visitIdx);
+    if(!visit||!Array.isArray(visit.photos)) return;
+    const target=visit.photos[pi];
+    if(!target) return;
+    visit.photos.splice(pi,1);
+    await saveCityMeta(meta);
+    // 同步移除城市相册里的同一条（双向一致）
+    await deleteRoutePhotoFromAlbum(ctx.cityKey,target);
+    refreshRouteViews(ctx,meta);
+    renderRouteEditorPhotos(visit);
+    if(currentCity&&currentCity.cityKey===ctx.cityKey){
+      await loadCityPhotos(ctx.cityKey);
+    }
+    await refreshState();
+  }
+  // 经历副本 → 城市相册条目的三级匹配：id → storagePath → dataUrl
+  // （本地上传两侧共享 addPhoto 自增 id；云端恢复的副本没有 id，只有 storagePath；历史数据只有 dataUrl）
+  async function deleteRoutePhotoFromAlbum(cityKey,mediaCopy){
+    if(!cityKey||!mediaCopy) return false;
+    const photos=await getPhotosByCity(cityKey);
+    if(!photos.length) return false;
+    let victim=null;
+    if(mediaCopy.id!=null){
+      victim=photos.find(p=>String(p.id)===String(mediaCopy.id))||null;
+    }
+    if(!victim&&mediaCopy.storagePath){
+      victim=photos.find(p=>p.storagePath&&p.storagePath===mediaCopy.storagePath)||null;
+    }
+    if(!victim&&mediaCopy.dataUrl){
+      victim=photos.find(p=>p.dataUrl&&p.dataUrl===mediaCopy.dataUrl)||null;
+    }
+    if(!victim) return false;
+    await deletePhoto(victim.id);
+    return true;
+  }
+  // 交换经历照片位置（拖拽排序）
+  async function routeSwapPhotos(ctx,fromPi,toPi){
+    const meta=await getCityMeta(ctx.cityKey);
+    if(!meta.attractions||!meta.attractions[ctx.idx]) return;
+    const visit=routeVisitAt(meta.attractions[ctx.idx],ctx.visitIdx);
+    const arr=visit&&Array.isArray(visit.photos)?visit.photos:[];
+    if(fromPi<arr.length&&toPi<arr.length&&fromPi!==toPi){
+      [arr[fromPi],arr[toPi]]=[arr[toPi],arr[fromPi]];
+      await saveCityMeta(meta);
+      refreshRouteViews(ctx,meta);
+      renderRouteEditorPhotos(visit);
+    }
+  }
+  // 把一条徒步经历填进静态编辑器表单
+  function fillVisitEditor(visit,route){
+    routeEditorTitle.textContent=route&&route.name?('徒步经历 · '+route.name):'徒步经历';
+    routeDateInput.value=(visit&&visit.visitDate)||'';
+    routeNotesInput.value=(visit&&visit.notes)||'';
+  }
+  // 单字段变更：读 DOM → 落盘 → 回写归一化后的值
+  async function onVisitFieldChange(field){
+    const ctx=routeEditorCtx;
+    if(!ctx) return;
+    const readers={
+      visitDate:()=>routeDateInput.value,
+      notes:()=>routeNotesInput.value
+    };
+    const reader=readers[field];
+    if(!reader) return;
+    const saved=await saveVisitField(ctx,field,reader());
+    if(!saved) return;
+    const visit=routeVisitAt(saved.attractions[ctx.idx],ctx.visitIdx);
+    if(!visit) return;
+    if(field==='visitDate') routeDateInput.value=visit.visitDate||'';
+    else if(field==='notes') routeNotesInput.value=visit.notes||'';
+  }
+  // 照片区重绘：缩略图插到静态上传按钮之前
+  function renderRouteEditorPhotos(visit){
+    if(!routeEditorThumbs||!routeUploadBtn||!visit) return;
+    routeEditorThumbs.querySelectorAll('.att-edit-thumb').forEach(t=>t.remove());
     let attEditDragSrc=null;  /* 编辑浮层内照片拖拽源 */
-    (att.photos||[]).forEach((ph,pi)=>{
+    (visit.photos||[]).forEach((ph,pi)=>{
       const t=document.createElement('div');
       t.className='att-edit-thumb';
       t.draggable=true;                  /* 允许拖拽交换位置 */
@@ -14498,7 +15254,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       }
       const d=document.createElement('button');
       d.className='del'; d.innerHTML='&times;';
-      d.addEventListener('click',e=>{ e.stopPropagation(); attDeletePhoto(idx,pi); });
+      d.addEventListener('click',e=>{ e.stopPropagation(); routeDeletePhoto(routeEditorCtx,pi); });
       t.appendChild(d);
       // ===== 拖拽交换位置 =====
       t.addEventListener('dragstart',e=>{
@@ -14509,7 +15265,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       });
       t.addEventListener('dragend',()=>{
         t.classList.remove('dragging');
-        thumbs.querySelectorAll('.att-edit-thumb').forEach(c=>c.classList.remove('drag-over'));
+        routeEditorThumbs.querySelectorAll('.att-edit-thumb').forEach(c=>c.classList.remove('drag-over'));
       });
       t.addEventListener('dragover',e=>{
         if(!attEditDragSrc) return;
@@ -14526,174 +15282,67 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         /* 交换 photos 数组中两个位置，持久化后重渲染 */
         const fromPi=Number(attEditDragSrc.dataset.pi);
         const toPi=Number(t.dataset.pi);
-        await attSwapPhotos(idx,fromPi,toPi);
+        await routeSwapPhotos(routeEditorCtx,fromPi,toPi);
       });
-      thumbs.appendChild(t);
+      routeEditorThumbs.insertBefore(t,routeUploadBtn);
     });
-    const uploadBtn=document.createElement('button');
-    uploadBtn.className='att-edit-upload';
-    uploadBtn.textContent='+';
-    uploadBtn.title='上传照片';
-    uploadBtn.addEventListener('click',()=>{
-      const input=document.createElement('input');
-      input.type='file'; input.accept='image/*,video/*,.mp4,.mov,.m4v,.webm'; input.multiple=true;
-      input.addEventListener('change',()=>attUploadPhotos(idx,input.files));
-      input.click();
+  }
+  // 事件绑定：只在初始化时调一次，避免每次打开叠加监听
+  function bindRouteEditorEvents(){
+    if(!routeEditorClose) return;
+    routeEditorClose.addEventListener('click',closeAttEditPanel);
+    [
+      ['routeDateInput','visitDate'],['routeNotesInput','notes']
+    ].forEach(pair=>{
+      const el=$(pair[0]);
+      if(el) el.addEventListener('change',()=>onVisitFieldChange(pair[1]));
     });
-    thumbs.appendChild(uploadBtn);
-    photoRow.appendChild(thumbs);
-    const hint=document.createElement('div');
-    hint.className='att-edit-hint';
-    hint.textContent='支持多张照片/视频同时上传 · 视频仅限本机模式';
-    photoRow.appendChild(hint);
-    attEditPanel.appendChild(photoRow);
-    // 景点备注
-    const notesRow=document.createElement('div');
-    notesRow.className='att-edit-row';
-    notesRow.innerHTML='<label>景点备注</label>';
-    const notesInput=document.createElement('textarea');
-    notesInput.value=att.notes||''; notesInput.placeholder='景点备注…';
-    notesInput.addEventListener('change',()=>attUpdateField(idx,'notes',notesInput.value));
-    notesRow.appendChild(notesInput);
-    attEditPanel.appendChild(notesRow);
-
+    if(routeUploadBtn) routeUploadBtn.addEventListener('click',()=>routePhotoInput.click());
+    if(routePhotoInput) routePhotoInput.addEventListener('change',()=>{
+      /* 先转成数组再清空 input：FileList 是活对象，重置 input 会让它变空 */
+      const files=Array.from(routePhotoInput.files||[]);
+      routePhotoInput.value='';           /* 允许连续选择同一文件 */
+      if(routeEditorCtx&&files.length) routeUploadPhotos(routeEditorCtx,files);
+    });
+  }
+  // 打开 canonical 徒步经历编辑器（静态表单，只负责填值与展示）
+  // anchor: 'modal' = 城市编辑弹窗内；'detail' = 城市详情浮层内
+  async function openVisitEditor(cityKey,idx,visitIdx,anchor){
+    const meta=await getCityMeta(cityKey);
+    const route=meta&&Array.isArray(meta.attractions)?meta.attractions[idx]:null;
+    if(!route) return;
+    const visit=routeVisitAt(route,visitIdx);
+    if(!visit) return;
+    routeEditorCtx={cityKey,idx,visitIdx,anchor:anchor||'detail'};
+    fillVisitEditor(visit,route);
+    renderRouteEditorPhotos(visit);
     attEditOverlay.classList.add('show');
+  }
+  // 详情页旧入口 → 打开该路线下的第一条经历（保持调用点兼容）
+  function openAttEditPanel(idx){
+    if(!attDetailCity) return;
+    openVisitEditor(attDetailCity.cityKey,idx,0,'detail');
   }
   function closeAttEditPanel(){
     attEditOverlay.classList.remove('show');
+    routeEditorCtx=null;
   }
   // 点击遮罩外区域关闭编辑面板
   attEditOverlay.addEventListener('click',e=>{ if(e.target===attEditOverlay) closeAttEditPanel(); });
-  // 景点字段更新（基于 attDetailCity，与原 updateAttraction 并行，互不影响城市弹窗逻辑）
-  async function attUpdateField(idx,field,val){
-    if(!attDetailCity) return;
-    const meta=await getCityMeta(attDetailCity.cityKey);
-    if(!meta.attractions||!meta.attractions[idx]) return;
-    meta.attractions[idx][field]=val;
-    await saveCityMeta(meta);
-    attDetailMeta=meta;
-    renderAttractionDetailList(meta.attractions||[]);
-    renderCityCards();
-  }
-  // 删除景点照片（基于 attDetailCity）
-  async function attDeletePhoto(idx,pi){
-    if(!attDetailCity) return;
-    const meta=await getCityMeta(attDetailCity.cityKey);
-    if(!meta.attractions||!meta.attractions[idx]) return;
-    meta.attractions[idx].photos.splice(pi,1);
-    await saveCityMeta(meta);
-    attDetailMeta=meta;
-    openAttEditPanel(idx);
-    renderAttractionDetailList(meta.attractions||[]);
-    renderCityCards();
-  }
-  // 交换景点照片位置（基于 attDetailCity，拖拽排序）
-  async function attSwapPhotos(idx,fromPi,toPi){
-    if(!attDetailCity) return;
-    const meta=await getCityMeta(attDetailCity.cityKey);
-    if(!meta.attractions||!meta.attractions[idx]) return;
-    const arr=meta.attractions[idx].photos||[];
-    if(fromPi<arr.length&&toPi<arr.length&&fromPi!==toPi){
-      [arr[fromPi],arr[toPi]]=[arr[toPi],arr[fromPi]];
-      await saveCityMeta(meta);
-      attDetailMeta=meta;
-      openAttEditPanel(idx);
-      renderAttractionDetailList(meta.attractions||[]);
-      renderCityCards();
-    }
-  }
-  // 上传景点照片（基于 attDetailCity，同步写入城市主相册）
-  async function attUploadPhotos(idx,files){
-    if(!attDetailCity||!files.length) return;
-    const meta=await getCityMeta(attDetailCity.cityKey);
-    if(!meta.attractions||!meta.attractions[idx]) return;
-    const existing=await getPhotosByCity(attDetailCity.cityKey);
-    let baseOrder=existing.length?Math.max(...existing.map(p=>p.order||0)):0;
-    let ok=0,fail=0;
-    for(const f of files){
-      try{
-        baseOrder+=1;
-        await importAttractionMedia(f,attDetailCity,meta.attractions[idx],baseOrder);
-        ok++;
-      }catch(err){ console.error(err); fail++; }
-    }
-    await saveCityMeta(meta);
-    attDetailMeta=meta;
-    // 更新封面背景（若首张照片变化）
-    if(!attDetailCoverUrl&&meta.attractions[idx].photos.length){
-      attDetailCoverUrl=meta.attractions[idx].photos[0].dataUrl;
-      attDetailBg.style.backgroundImage='url("'+attDetailCoverUrl+'")';
-    }
-    openAttEditPanel(idx);
-    renderAttractionDetailList(meta.attractions||[]);
-    renderCityCards();
-    if(ok) toast('已上传 '+ok+' 个景点影像'+(fail?('，'+fail+' 个失败'):''));
-    }
 
   /* ---------- 模态框 ---------- */
-  let hometownEditMode=false; // 家乡模式下出生年月仅一次（隐藏「+ 加一次」与「第X次」计数）
-  function collectVisitMonthInputs(){
-    return Array.from(monthEntries.querySelectorAll('input[type="month"]')).map(input=>input.value);
-  }
-  function renderVisitMonthInputs(months){
-    const isHometown=hometownEditMode;
-    // 家乡模式：出生年月仅一次，只渲染第一个值，不显示「第X次」计数与多次条目
-    const values=isHometown
-      ? [(months&&months.length?months[0]:'')]
-      : (months&&months.length?months:['']);
-    monthEntries.innerHTML='';
-    values.forEach((value,index)=>{
-      const row=document.createElement('div');
-      row.className='month-entry';
-      if(!isHometown){
-        const label=document.createElement('span');
-        label.className='month-entry-index';
-        label.textContent='第'+(index+1)+'次';
-        row.appendChild(label);
-      }
-      const input=document.createElement('input');
-      input.type='month';
-      input.value=value||'';
-      input.setAttribute('aria-label', isHometown?'出生年月':('第'+(index+1)+'次游玩年月'));
-      row.appendChild(input);
-      if(!isHometown && values.length>1){
-        const remove=document.createElement('button');
-        remove.type='button';
-        remove.className='month-remove-btn';
-        remove.innerHTML='&times;';
-        remove.title='删除第'+(index+1)+'次游玩年月';
-        remove.setAttribute('aria-label',remove.title);
-        remove.addEventListener('click',()=>{
-          const current=collectVisitMonthInputs();
-          current.splice(index,1);
-          renderVisitMonthInputs(current);
-        });
-        row.appendChild(remove);
-      }
-      monthEntries.appendChild(row);
-    });
-  }
-  function addVisitMonthInput(){
-    const values=collectVisitMonthInputs();
-    values.push('');
-    renderVisitMonthInputs(values);
-    const inputs=monthEntries.querySelectorAll('input[type="month"]');
-    if(inputs.length) inputs[inputs.length-1].focus();
-  }
   function openCityModal(city){
     currentCity=city;
     mediaFilterKind='image';
     updateMediaUploadMode();
     cityTitle.textContent=city.name;
-    // 我的家乡标识：若当前编辑城市为家乡，显示强调横幅，并把「游玩年月」改为「出生年月」、封面/简介改为家乡主题
+    // 我的家乡标识：若当前编辑城市为家乡，显示强调横幅与出生年月输入，封面/简介改为家乡主题
     const _home=getFootprintHome();
     const isHometown=!!(_home&&_home.cityKey===city.cityKey);
     const hometownBannerEl=document.getElementById('hometownBanner');
     if(hometownBannerEl) hometownBannerEl.style.display=isHometown?'flex':'none';
-    const monthPickerLabelEl=document.getElementById('monthPickerLabel');
-    if(monthPickerLabelEl) monthPickerLabelEl.textContent=isHometown?'出生年月':'游玩年月';
-    hometownEditMode=isHometown;
-    if(monthAddBtn) monthAddBtn.style.display=isHometown?'none':'';
+    if(birthMonthField) birthMonthField.hidden=!isHometown;
+    if(birthMonthInput) birthMonthInput.value='';
     const coverLabelEl=document.getElementById('coverLabel');
     if(coverLabelEl) coverLabelEl.textContent=isHometown?'家乡封面':'城市封面';
     const cityDescLabelEl=document.getElementById('cityDescLabel');
@@ -14708,8 +15357,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     modalCount.textContent='';
     thumbsGrid.innerHTML='';
     modalEmpty.style.display='none';
-    // 重置年月、标签、封面、星级、景点
-    renderVisitMonthInputs([]);
+    // 重置标签、封面、星级、徒步路线
     tagList.innerHTML='';
     tagInput.value='';
     coverPreviewWrap.style.display='none';
@@ -14724,11 +15372,11 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     loadCityPhotos(city.cityKey);
     loadCityMeta(city.cityKey);
   }
-  // 加载城市元数据（年月+标签+封面+星级+简介+景点）到弹窗
+  // 加载城市元数据（出生年月+标签+封面+星级+简介+徒步路线）到弹窗
   async function loadCityMeta(cityKey){
     try{
       const meta=await getCityMeta(cityKey);
-      renderVisitMonthInputs(getVisitMonths(meta));
+      if(birthMonthInput) birthMonthInput.value=meta.birthMonth||'';
       renderTagList(meta.tags||[]);
       // 封面图
       if(meta.coverImage){
@@ -14753,191 +15401,306 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       if(svg) svg.classList.toggle('inactive', !isActive);
     });
   }
-  // 渲染景点列表
+  // 路线卡的一行（标签 + 控件容器）
+  function routeCardRow(labelText){
+    const row=document.createElement('div');
+    row.className='route-card-row';
+    const lb=document.createElement('label');
+    lb.textContent=labelText;
+    row.appendChild(lb);
+    return row;
+  }
+  // 路线卡的文本框 / 下拉框
+  function routeCardInput(tag,field,attrs){
+    const input=document.createElement(tag);
+    input.className='route-card-input';
+    input.dataset.field=field;
+    Object.keys(attrs||{}).forEach(k=>{ input.setAttribute(k,attrs[k]); });
+    return input;
+  }
+  // 路线卡头部显示：标题 / 难度徽章 / 指标
+  function updateRouteCardDisplay(card,route,idx){
+    if(!card||!route) return;
+    const title=card.querySelector('.route-card-title');
+    if(title) title.textContent=route.name||('路线 '+(idx+1));
+    const badge=card.querySelector('.route-card-badge');
+    if(badge) badge.innerHTML=routeDifficultyBadge(route.difficulty);
+    const metrics=card.querySelector('.route-card-metrics');
+    if(metrics) metrics.textContent=routeMetricsText(route);
+  }
+  // 把一条路线填进路线卡表单
+  function fillRouteCard(card,route,idx){
+    const set=(field,value)=>{
+      const input=card.querySelector('.route-card-input[data-field="'+field+'"]');
+      if(input) input.value=value;
+    };
+    set('name',route.name||'');
+    set('difficulty',ROUTE_DIFFICULTIES.includes(route.difficulty)?route.difficulty:'');
+    set('distanceKm',route.distanceKm||0);
+    set('elevationGain',route.elevationGain||0);
+    set('maxAltitude',route.maxAltitude||0);
+    set('lng',route.lng==null?'':route.lng);
+    set('lat',route.lat==null?'':route.lat);
+    updateRouteCardDisplay(card,route,idx);
+  }
+  // 渲染徒步路线列表（城市弹窗内：路线字段就地编辑 + 每条路线下的经历列表）
   function renderAttractions(attractions){
     attractionListEl.innerHTML='';
-    attractions.forEach((att,idx)=>{
-      const item=document.createElement('div');
-      item.className='attraction-item';
-      // 头部：名称输入 + 日期输入 + 删除
+    if(!attractions.length){
+      const empty=document.createElement('div');
+      empty.className='route-list-empty';
+      empty.innerHTML='<span class="big">暂无徒步路线</span><span class="sub">点击下方按钮添加路线，游玩时间与次数将自动统计</span>';
+      attractionListEl.appendChild(empty);
+      return;
+    }
+    attractions.forEach((route,idx)=>{
+      const card=document.createElement('div');
+      card.className='route-card';
+      card.dataset.routeIdx=String(idx);
+      // ===== 头部：路线名 + 难度徽章 + 指标 =====
       const head=document.createElement('div');
-      head.className='attraction-head';
-      const nameInput=document.createElement('input');
-      nameInput.className='attraction-name-input';
-      nameInput.value=att.name||'';
-      nameInput.placeholder='景点名称';
-      nameInput.addEventListener('change',()=>updateAttraction(idx,'name',nameInput.value));
-      // 游玩日期输入（年月日）
-      const dateInput=document.createElement('input');
-      dateInput.type='date';
-      dateInput.className='attraction-date-input';
-      dateInput.value=att.visitDate||'';
-      dateInput.title='游玩日期';
-      dateInput.addEventListener('change',()=>updateAttraction(idx,'visitDate',dateInput.value));
+      head.className='route-card-head';
+      const titleEl=document.createElement('span');
+      titleEl.className='route-card-title';
+      const badgeEl=document.createElement('span');
+      badgeEl.className='route-card-badge';
+      const metricsEl=document.createElement('span');
+      metricsEl.className='route-card-metrics';
+      head.append(titleEl,badgeEl,metricsEl);
+      card.appendChild(head);
+      // ===== 路线名称 =====
+      const nameRow=routeCardRow('路线名称');
+      const nameInput=routeCardInput('input','name',{type:'text',placeholder:'路线名称（如：虎丘山径）'});
+      nameRow.appendChild(nameInput);
+      card.appendChild(nameRow);
+      // ===== 线路难度 =====
+      const diffRow=routeCardRow('线路难度');
+      const diffSelect=routeCardInput('select','difficulty',{});
+      [''].concat(ROUTE_DIFFICULTIES).forEach(key=>{
+        const opt=document.createElement('option');
+        opt.value=key;
+        opt.textContent=key?DIFFICULTY_LABELS[key]:'未标注';
+        diffSelect.appendChild(opt);
+      });
+      diffRow.appendChild(diffSelect);
+      card.appendChild(diffRow);
+      // ===== 路线数据 =====
+      const metricRow=routeCardRow('路线数据');
+      const metricGrid=document.createElement('div');
+      metricGrid.className='route-card-grid';
+      [
+        {field:'distanceKm',label:'里程',unit:'km',step:'0.1',placeholder:'如 8.5',tip:'路线全程的水平长度（走过的总路程）'},
+        {field:'elevationGain',label:'爬升',unit:'m',step:'1',placeholder:'如 320',tip:'全程累计上升的高度（只算上坡，不含下坡）'},
+        {field:'maxAltitude',label:'最高海拔',unit:'m',step:'1',placeholder:'如 480',tip:'全程最高点所在的海拔高度'}
+      ].forEach(spec=>{
+        const field=document.createElement('div');
+        field.className='route-metric-field';
+        const lb=document.createElement('span');
+        lb.className='route-metric-label';
+        lb.textContent=spec.label+'（'+spec.unit+'）';
+        const input=routeCardInput('input',spec.field,{type:'number',step:spec.step,min:'0',placeholder:spec.placeholder,title:spec.tip});
+        field.appendChild(lb);
+        field.appendChild(input);
+        metricGrid.appendChild(field);
+      });
+      metricRow.appendChild(metricGrid);
+      const metricHint=document.createElement('div');
+      metricHint.className='route-card-hint';
+      metricHint.textContent='里程=全程水平长度；爬升=全程累计上升高度（不含下降）；最高海拔=全程最高点海拔。三项都是这条路线自身的属性（同一路线多次徒步共用一组数值），可以留空。';
+      metricRow.appendChild(metricHint);
+      card.appendChild(metricRow);
+      // ===== 坐标（可编辑；新建默认取所选城市坐标）=====
+      const coordRow=routeCardRow('坐标');
+      const coordGrid=document.createElement('div');
+      coordGrid.className='route-card-grid';
+      [
+        {field:'lng',placeholder:'经度 lng',min:'-180',max:'180'},
+        {field:'lat',placeholder:'纬度 lat',min:'-90',max:'90'}
+      ].forEach(spec=>{
+        coordGrid.appendChild(routeCardInput('input',spec.field,{type:'number',step:'0.0001',min:spec.min,max:spec.max,placeholder:spec.placeholder}));
+      });
+      coordRow.appendChild(coordGrid);
+      const coordHint=document.createElement('div');
+      coordHint.className='route-card-hint';
+      coordHint.textContent='坐标系：高德/腾讯地图（GCJ-02），新建默认取所选城市坐标';
+      coordRow.appendChild(coordHint);
+      card.appendChild(coordRow);
+      // ===== 徒步经历列表 =====
+      const visitsBox=document.createElement('div');
+      visitsBox.className='route-card-visits';
+      visitsBox.dataset.routeIdx=String(idx);
+      card.appendChild(visitsBox);
+      // ===== 操作 =====
+      const actions=document.createElement('div');
+      actions.className='route-card-actions';
+      const addVisitBtn=document.createElement('button');
+      addVisitBtn.type='button';
+      addVisitBtn.className='route-summary-btn';
+      addVisitBtn.textContent='+ 添加徒步经历';
+      addVisitBtn.title='为这条路线添加一条徒步经历';
+      addVisitBtn.addEventListener('click',()=>addVisit(idx));
       const delBtn=document.createElement('button');
-      delBtn.className='attraction-del';
-      delBtn.innerHTML='&times;';
-      delBtn.title='删除景点';
+      delBtn.type='button';
+      delBtn.className='route-summary-btn route-summary-del';
+      delBtn.textContent='删除路线';
+      delBtn.title='删除徒步路线';
       delBtn.addEventListener('click',()=>deleteAttraction(idx));
-      head.append(nameInput,dateInput,delBtn);
-      // 缩略图
-      const thumbs=document.createElement('div');
-      thumbs.className='attraction-thumbs';
-      let attDragSrc=null;  /* 景点内照片拖拽源 */
-      (att.photos||[]).forEach((ph,pi)=>{
-        const t=document.createElement('div');
-        t.className='attraction-thumb';
-        t.draggable=true;                    /* 允许拖拽交换位置 */
-        t.dataset.pi=pi;                     /* 记录照片索引 */
-        const img=document.createElement('img');
-        img.src=ph.dataUrl; img.alt=att.name||'';
-        t.appendChild(img);
-      if(ph.kind==='video'){
-        const badge=document.createElement('span');
-        badge.className='attraction-thumb-video-badge';
-        badge.innerHTML='<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-        t.appendChild(badge);
-      }
-        t.addEventListener('click',()=>openPhotoViewer(att.photos||[],pi,true));  /* true = 景点照片用 3D 旋转木马 */
-        const d=document.createElement('button');
-        d.className='del'; d.innerHTML='&times;';
-        d.addEventListener('click',e=>{ e.stopPropagation(); deleteAttractionPhoto(idx,pi); });
-        t.appendChild(d);
-        // ===== 3D 浮空效果：纯 CSS hover，与城市卡片缩略图完全统一 =====
-        // 不使用 JS mousemove 动态倾斜，避免父容器透视原点偏移导致"偏左悬空"
-        // ===== 拖拽交换位置（仅照片间拖拽，不影响文件上传 drop）=====
-        t.addEventListener('dragstart',e=>{
-          attDragSrc=t;
-          t.classList.add('dragging');
-          e.dataTransfer.effectAllowed='move';
-          e.dataTransfer.setData('text/plain',String(pi));  /* 设数据使 drag 生效 */
-        });
-        t.addEventListener('dragend',()=>{
-          t.classList.remove('dragging');
-          thumbs.querySelectorAll('.attraction-thumb').forEach(c=>c.classList.remove('drag-over'));
-        });
-        t.addEventListener('dragover',e=>{
-          /* 仅在拖拽照片时阻止默认（文件上传 drop 由容器接管）*/
-          if(attDragSrc){ e.preventDefault(); e.stopPropagation(); }
-          if(attDragSrc&&t!==attDragSrc) t.classList.add('drag-over');
-        });
-        t.addEventListener('dragleave',()=>t.classList.remove('drag-over'));
-        t.addEventListener('drop',async e=>{
-          if(!attDragSrc) return;             /* 无照片拖拽源 → 让事件冒泡到容器处理文件上传 */
-          e.preventDefault(); e.stopPropagation();
-          t.classList.remove('drag-over');
-          if(t===attDragSrc) return;
-          /* 交换 photos 数组中两个位置，持久化后重渲染 */
-          const fromPi=Number(attDragSrc.dataset.pi);
-          const toPi=Number(t.dataset.pi);
-          const meta=await getCityMeta(currentCity.cityKey);
-          if(!meta.attractions||!meta.attractions[idx]) return;
-          const arr=meta.attractions[idx].photos||[];
-          if(fromPi<arr.length&&toPi<arr.length){
-            [arr[fromPi],arr[toPi]]=[arr[toPi],arr[fromPi]];
-            await saveCityMeta(meta);
-            renderAttractions(meta.attractions);
-          }
-        });
-        thumbs.appendChild(t);
+      actions.append(addVisitBtn,delBtn);
+      card.appendChild(actions);
+      // ===== 字段变更即存（只更新受影响的显示节点，不整表重绘）=====
+      card.querySelectorAll('.route-card-input').forEach(input=>{
+        input.addEventListener('change',()=>onRouteCardFieldChange(idx,input.dataset.field,input));
       });
-      // 上传按钮
-      const uploadBtn=document.createElement('button');
-      uploadBtn.className='attraction-upload-btn';
-      uploadBtn.textContent='+ 照片/视频';
-      uploadBtn.addEventListener('click',()=>{
-        const input=document.createElement('input');
-        input.type='file'; input.accept='image/*,video/*,.mp4,.mov,.m4v,.webm'; input.multiple=true;
-        input.addEventListener('change',()=>uploadAttractionPhotos(idx,input.files));
-        input.click();
-      });
-      thumbs.appendChild(uploadBtn);
-      // ===== 拖拽上传：把图片文件拖到该景点缩略图区，自动上传到本景点 + 城市主相册 =====
-      thumbs.addEventListener('dragover',e=>{
-        e.preventDefault();
-        e.dataTransfer.dropEffect='copy';
-        thumbs.classList.add('attraction-thumbs-dragover');
-      });
-      thumbs.addEventListener('dragleave',e=>{
-        // 仅当真正离开容器（relatedTarget 不在 thumbs 内）才移除高亮
-        if(!thumbs.contains(e.relatedTarget)) thumbs.classList.remove('attraction-thumbs-dragover');
-      });
-      thumbs.addEventListener('drop',e=>{
-        e.preventDefault();
-        thumbs.classList.remove('attraction-thumbs-dragover');
-        const dt=e.dataTransfer;
-        if(!dt||!dt.files||!dt.files.length) return;
-        const files=Array.from(dt.files).filter(f=>f.type.startsWith('image/')||isVideoFile(f));
-        if(files.length) uploadAttractionPhotos(idx,files);
-      });
-      // 备注
-      const notes=document.createElement('textarea');
-      notes.className='attraction-notes';
-      notes.placeholder='景点备注…';
-      notes.value=att.notes||'';
-      notes.rows=1;
-      notes.addEventListener('change',()=>updateAttraction(idx,'notes',notes.value));
-      item.append(head,thumbs,notes);
-      attractionListEl.appendChild(item);
+      attractionListEl.appendChild(card);
+      fillRouteCard(card,route,idx);
+      renderRouteVisits(idx,route);
     });
   }
-  // 添加景点
+  // 路线卡字段变更：落盘 → 回写归一化结果 → 局部刷新显示
+  async function onRouteCardFieldChange(idx,field,input){
+    if(!currentCity) return;
+    const saved=await saveRouteField({cityKey:currentCity.cityKey,idx,anchor:'modal'},field,input.value);
+    if(!saved) return;
+    const route=saved.attractions[idx];
+    if(!route) return;
+    // 数字非法→0；坐标越界→null→空串
+    if(field==='distanceKm') input.value=route.distanceKm||0;
+    else if(field==='elevationGain') input.value=route.elevationGain||0;
+    else if(field==='maxAltitude') input.value=route.maxAltitude||0;
+    else if(field==='lng') input.value=route.lng==null?'':route.lng;
+    else if(field==='lat') input.value=route.lat==null?'':route.lat;
+    const card=attractionListEl.querySelector('.route-card[data-route-idx="'+idx+'"]');
+    updateRouteCardDisplay(card,route,idx);
+  }
+  // 渲染某条路线下的徒步经历列表（只重绘这一块，不动其它输入框）
+  function renderRouteVisits(routeIdx,route){
+    const card=attractionListEl.querySelector('.route-card[data-route-idx="'+routeIdx+'"]');
+    const box=card&&card.querySelector('.route-card-visits');
+    if(!box) return;
+    box.innerHTML='';
+    const visits=routeVisits(route);
+    if(!visits.length){
+      const empty=document.createElement('div');
+      empty.className='route-card-visit-empty';
+      empty.textContent='暂无徒步经历，点击下方按钮添加';
+      box.appendChild(empty);
+      return;
+    }
+    visits.forEach((visit,vi)=>{
+      const row=document.createElement('div');
+      row.className='route-card-visit';
+      const dateEl=document.createElement('span');
+      dateEl.className='route-card-visit-date';
+      dateEl.textContent=visit.visitDate||'未记录日期';
+      const notesEl=document.createElement('span');
+      notesEl.className='route-card-visit-notes';
+      notesEl.textContent=visit.notes||'';
+      const mediaEl=document.createElement('span');
+      mediaEl.className='route-card-visit-media';
+      const photos=Array.isArray(visit.photos)?visit.photos:[];
+      mediaEl.textContent=formatMediaCounts(countMedia(photos))||'';
+      const editBtn=document.createElement('button');
+      editBtn.type='button';
+      editBtn.className='route-summary-btn';
+      editBtn.textContent='编辑';
+      editBtn.title='编辑这条徒步经历';
+      editBtn.addEventListener('click',()=>{
+        if(!currentCity) return;
+        openVisitEditor(currentCity.cityKey,routeIdx,vi,'modal');
+      });
+      const delBtn=document.createElement('button');
+      delBtn.type='button';
+      delBtn.className='route-summary-btn route-summary-del';
+      delBtn.textContent='删除';
+      delBtn.title='删除这条徒步经历';
+      delBtn.addEventListener('click',()=>deleteVisit(routeIdx,vi));
+      // 缩略图区：最多 4 张，点击可打开该条经历的图片预览
+      const thumbs=document.createElement('div');
+      thumbs.className='route-card-visit-thumbs';
+      const MAX_VISIT_THUMBS=4;
+      photos.slice(0,MAX_VISIT_THUMBS).forEach((ph,pi)=>{
+        const b=document.createElement('button');
+        b.type='button';
+        b.className='route-card-visit-thumb'+(ph.kind==='video'?' is-video':'');
+        b.title=(ph.name||'照片')+(ph.kind==='video'?'（视频）':'');
+        const img=document.createElement('img');
+        img.src=ph.dataUrl||'';   // 视频副本的 dataUrl 是封面 JPEG
+        img.alt=ph.name||'';
+        b.appendChild(img);
+        if(ph.kind==='video'){
+          const playBadge=document.createElement('span');
+          playBadge.className='route-card-visit-thumb-play';
+          playBadge.innerHTML='<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+          b.appendChild(playBadge);
+        }
+        b.addEventListener('click',e=>{
+          e.stopPropagation();
+          openPhotoViewer(photos,pi);
+        });
+        thumbs.appendChild(b);
+      });
+      if(photos.length>MAX_VISIT_THUMBS){
+        const more=document.createElement('button');
+        more.type='button';
+        more.className='route-card-visit-thumb-more';
+        more.textContent='+'+(photos.length-MAX_VISIT_THUMBS);
+        more.addEventListener('click',e=>{ e.stopPropagation(); openPhotoViewer(photos,0); });
+        thumbs.appendChild(more);
+      }
+      // 缩略图区放在最后 → flex-wrap 换到独立一行，编辑/删除按钮仍留在日期行
+      row.append(dateEl,notesEl,mediaEl,editBtn,delBtn,thumbs);
+      box.appendChild(row);
+    });
+  }
+  // 在指定城市下新建一条徒步路线（坐标默认取所选城市质心，用户可再改）
+  async function addRouteToCity(city){
+    if(!city||!city.cityKey) return null;
+    const meta=await getCityMeta(city.cityKey);
+    if(!Array.isArray(meta.attractions)) meta.attractions=[];
+    const coords=defaultRouteCoords(city.cityKey);
+    const route=normalizeRoute({name:'',difficulty:'',
+      distanceKm:0,elevationGain:0,maxAltitude:0,lng:coords.lng,lat:coords.lat,visits:[]});
+    meta.attractions.push(route);
+    await saveCityMeta(meta);
+    return route;
+  }
+  // 添加徒步路线
   async function addAttraction(){
     if(!currentCity) return;
+    await addRouteToCity(currentCity);
     const meta=await getCityMeta(currentCity.cityKey);
-    if(!meta.attractions) meta.attractions=[];
-    meta.attractions.push({id:Date.now(),name:'',photos:[],notes:'',visitDate:''});
-    await saveCityMeta(meta);
-    renderAttractions(meta.attractions);
+    renderAttractions(meta.attractions||[]);
+    renderCityCards();
   }
-  // 删除景点
+  // 添加一条徒步经历
+  async function addVisit(routeIdx){
+    if(!currentCity) return;
+    const meta=await getCityMeta(currentCity.cityKey);
+    const route=meta.attractions&&meta.attractions[routeIdx];
+    if(!route) return;
+    if(!Array.isArray(route.visits)) route.visits=[];
+    route.visits.push(normalizeVisit({}));
+    await saveCityMeta(meta);
+    renderRouteVisits(routeIdx,route);
+    renderCityCards();
+  }
+  // 删除一条徒步经历
+  async function deleteVisit(routeIdx,visitIdx){
+    if(!currentCity) return;
+    const meta=await getCityMeta(currentCity.cityKey);
+    const route=meta.attractions&&meta.attractions[routeIdx];
+    if(!route||!Array.isArray(route.visits)) return;
+    route.visits.splice(visitIdx,1);
+    await saveCityMeta(meta);
+    renderRouteVisits(routeIdx,route);
+    renderCityCards();
+  }
+  // 删除徒步路线
   async function deleteAttraction(idx){
     if(!currentCity) return;
     const meta=await getCityMeta(currentCity.cityKey);
     if(!meta.attractions) return;
     meta.attractions.splice(idx,1);
-    await saveCityMeta(meta);
-    renderAttractions(meta.attractions);
-    renderCityCards();
-  }
-  // 更新景点字段
-  async function updateAttraction(idx,field,val){
-    if(!currentCity) return;
-    const meta=await getCityMeta(currentCity.cityKey);
-    if(!meta.attractions||!meta.attractions[idx]) return;
-    meta.attractions[idx][field]=val;
-    await saveCityMeta(meta);
-  }
-  // 上传景点照片
-  async function uploadAttractionPhotos(idx,files){
-    if(!currentCity||!files.length) return;
-    const meta=await getCityMeta(currentCity.cityKey);
-    if(!meta.attractions||!meta.attractions[idx]) return;
-    // 同步写入城市主相册，order 接在当前城市已有照片之后
-    const existing=await getPhotosByCity(currentCity.cityKey);
-    let baseOrder=existing.length?Math.max(...existing.map(p=>p.order||0)):0;
-    let ok=0,fail=0;
-    for(const f of files){
-      try{
-        baseOrder+=1;
-        await importAttractionMedia(f,currentCity,meta.attractions[idx],baseOrder);
-        ok++;
-      }catch(err){ console.error(err); fail++; }
-    }
-    await saveCityMeta(meta);
-    renderAttractions(meta.attractions);
-    await loadCityPhotos(currentCity.cityKey);
-    renderCityCards();
-    await refreshState();
-    if(ok) toast('景点影像已上传 '+ok+' 个到相册'+(fail?('，'+fail+' 个失败'):''));
-    else if(fail) toast('上传失败：'+fail+' 个',true);
-  }
-  // 删除景点照片
-  async function deleteAttractionPhoto(idx,pi){
-    if(!currentCity) return;
-    const meta=await getCityMeta(currentCity.cityKey);
-    if(!meta.attractions||!meta.attractions[idx]) return;
-    meta.attractions[idx].photos.splice(pi,1);
     await saveCityMeta(meta);
     renderAttractions(meta.attractions);
     renderCityCards();
@@ -15016,16 +15779,15 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     renderTagList(meta.tags);
     renderCityCards();
   }
-  // 保存多次游玩年月；visitMonth 保留第一次记录以兼容旧版时间轴
-  async function saveVisitMonths(){
+  // 保存家乡出生年月（与徒步路线完全独立）
+  async function saveBirthMonth(){
     if(!currentCity) return;
     const meta=await getCityMeta(currentCity.cityKey);
-    const months=collectVisitMonthInputs().filter(Boolean);
-    meta.visitMonths=months;
-    meta.visitMonth=months[0]||'';
+    const value=String((birthMonthInput&&birthMonthInput.value)||'').trim();
+    meta.birthMonth=/^\d{4}-\d{2}$/.test(value)?value:'';
     await saveCityMeta(meta);
-    renderVisitMonthInputs(months);
-    toast(months.length?('已保存 '+months.length+' 次游玩年月'):'游玩年月已清空');
+    if(birthMonthInput) birthMonthInput.value=meta.birthMonth;
+    toast(meta.birthMonth?('已保存出生年月 '+formatMonth(meta.birthMonth)):'出生年月已清空');
     renderCityCards();
   }
   function closeModal(){
@@ -15113,7 +15875,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       (tagsHtml?'<div class="review-card-tags">'+tagsHtml+'</div>':'')+
       '<div class="review-card-info">'+
         (r.visitDate?'<span class="r-info-item"><span class="r-info-label">时间</span>'+escapeHtml(r.visitDate)+'</span>':'')+
-        ((r.attractions||[]).length?'<span class="r-info-item"><span class="r-info-label">景点</span>'+(r.attractions||[]).map(escapeHtml).join('、')+'</span>':'')+
+        ((r.attractions||[]).length?'<span class="r-info-item"><span class="r-info-label">徒步路线</span>'+normalizePublicRoutes(r.attractions).map(route=>escapeHtml(route.name)).join('、')+'</span>':'')+
       '</div>'+
       photosHtml+
       (isMine?'<div class="review-card-actions">'+
@@ -15135,14 +15897,14 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   // 构建我的点评卡片数据
   function buildMyReviewData(meta,identity,visibility){
     const v=visibility||{};
-    const visitDate=getLatestVisitMonth(getVisitMonths(meta));
+    const visitDate=getRouteStats(meta).latestMonth;
     return {
       nickname:identity.nickname,
       avatarUrl:identity.avatarUrl,
       rating:v.rating!==false?meta.rating||0:0,
       intro:v.description!==false?meta.description||'':'',
       tags:v.tags!==false?(meta.tags||[]).map(t=>typeof t==='string'?t:t.text||'').filter(Boolean):[],
-      attractions:v.attractions!==false?(meta.attractions||[]).map(a=>a.name||'').filter(Boolean):[],
+      attractions:v.attractions!==false?publicRoutesOf(meta):[],
       visitDate:v.visitMonth!==false?formatMonth(visitDate):'',
       photos:[],
       publishedAt:Date.now(),
@@ -15172,10 +15934,10 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       ?'<img src="'+resolvedAvatarUrl+'" alt="" />'
       :'<span style="font-size:18px;font-weight:700;color:#38bdf8;">'+(identity.nickname||'旅')[0]+'</span>';
     // 构建预览数据
-    const visitDate=getLatestVisitMonth(getVisitMonths(meta));
+    const visitDate=getRouteStats(meta).latestMonth;
     const rating=meta.rating||0;
     const tags=(meta.tags||[]).map(t=>typeof t==='string'?t:t.text||'').filter(Boolean);
-    const attractions=(meta.attractions||[]).map(a=>a.name||'').filter(Boolean);
+    const attractions=publicRoutesOf(meta);
     // 默认可见性
     const defaultVis={rating:true,description:true,visitMonth:true,tags:true,attractions:true,photos:true};
     const vis=existingReview&&existingReview.visibility?existingReview.visibility:defaultVis;
@@ -15188,17 +15950,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       '<div class="publish-city-title">'+escapeHtml(currentCity.name)+'</div>'+
       (rating?'<div class="publish-section"><div class="publish-section-label">推荐指数 <label class="pub-toggle"><input type="checkbox" class="vis-check" data-field="rating"'+(vis.rating?' checked':'')+'> 公开</label></div><div class="publish-rating">'+renderStars(rating)+'</div></div>':'')+
       (meta.description?'<div class="publish-section"><div class="publish-section-label">城市简介 <label class="pub-toggle"><input type="checkbox" class="vis-check" data-field="description"'+(vis.description?' checked':'')+'> 公开</label></div><div class="publish-desc">'+escapeHtml(meta.description)+'</div></div>':'')+
-      (visitDate?'<div class="publish-section"><div class="publish-section-label">游玩时间 <label class="pub-toggle"><input type="checkbox" class="vis-check" data-field="visitMonth"'+(vis.visitMonth?' checked':'')+'> 公开</label></div><div style="font-size:13px;color:var(--ink);">'+formatMonth(visitDate)+'</div></div>':'')+
+      (visitDate?'<div class="publish-section"><div class="publish-section-label">最近路线时间 <label class="pub-toggle"><input type="checkbox" class="vis-check" data-field="visitMonth"'+(vis.visitMonth?' checked':'')+'> 公开</label></div><div style="font-size:13px;color:var(--ink);">'+formatMonth(visitDate)+'</div></div>':'')+
       (tags.length?'<div class="publish-section"><div class="publish-section-label">标签 <label class="pub-toggle"><input type="checkbox" class="vis-check" data-field="tags"'+(vis.tags?' checked':'')+'> 公开</label></div><div class="publish-tags">'+tags.map(t=>'<span class="r-tag">#'+escapeHtml(t)+'</span>').join('')+'</div></div>':'')+
-      (attractions.length?'<div class="publish-section"><div class="publish-section-label">去过的景点 <label class="pub-toggle"><input type="checkbox" class="vis-check" data-field="attractions"'+(vis.attractions?' checked':'')+'> 公开</label></div><div class="publish-attractions">'+attractions.map(a=>'<span class="publish-attraction-chip">'+escapeHtml(a)+'</span>').join('')+'</div></div>':'')+
+      (attractions.length?'<div class="publish-section"><div class="publish-section-label">徒步路线 <label class="pub-toggle"><input type="checkbox" class="vis-check" data-field="attractions"'+(vis.attractions?' checked':'')+'> 公开</label></div><div class="publish-attractions">'+attractions.map(a=>'<span class="publish-attraction-chip">'+escapeHtml(a.name)+'</span>').join('')+'</div></div>':'')+
       '<div class="publish-visibility">'+
         '<div class="publish-visibility-title">选择要公开的信息</div>'+
         '<div class="publish-visibility-grid">'+
           '<label class="pub-vis-item"><input type="checkbox" class="vis-check" data-field="rating"'+(vis.rating?' checked':'')+'> 推荐指数</label>'+
           '<label class="pub-vis-item"><input type="checkbox" class="vis-check" data-field="description"'+(vis.description?' checked':'')+'> 城市简介</label>'+
-          '<label class="pub-vis-item"><input type="checkbox" class="vis-check" data-field="visitMonth"'+(vis.visitMonth?' checked':'')+'> 游玩时间</label>'+
+          '<label class="pub-vis-item"><input type="checkbox" class="vis-check" data-field="visitMonth"'+(vis.visitMonth?' checked':'')+'> 最近路线时间</label>'+
           '<label class="pub-vis-item"><input type="checkbox" class="vis-check" data-field="tags"'+(vis.tags?' checked':'')+'> 标签</label>'+
-          '<label class="pub-vis-item"><input type="checkbox" class="vis-check" data-field="attractions"'+(vis.attractions?' checked':'')+'> 景点</label>'+
+          '<label class="pub-vis-item"><input type="checkbox" class="vis-check" data-field="attractions"'+(vis.attractions?' checked':'')+'> 徒步路线</label>'+
         '</div>'+
       '</div>';
     // 存储编辑模式
@@ -15243,9 +16005,9 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const visibility={rating:true,description:true,visitMonth:true,tags:true,attractions:true,photos:true};
     visChecks.forEach(cb=>{ visibility[cb.dataset.field]=cb.checked; });
     // 构建点评数据
-    const visitDate=getLatestVisitMonth(getVisitMonths(meta));
+    const visitDate=getRouteStats(meta).latestMonth;
     const tags=(meta.tags||[]).map(t=>typeof t==='string'?t:t.text||'').filter(Boolean);
-    const attractions=(meta.attractions||[]).map(a=>a.name||'').filter(Boolean);
+    const attractions=publicRoutesOf(meta);
     const now=Date.now();
     const isEdit=publishBody.dataset.editMode==='1';
     const existingId=publishBody.dataset.existingReviewId;
@@ -15307,9 +16069,9 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     if(!existing){ toast('没有找到已发布的点评',true); return; }
     const meta=await getCityMeta(currentCity.cityKey);
     const identity=getPublicIdentity();
-    const visitDate=getLatestVisitMonth(getVisitMonths(meta));
+    const visitDate=getRouteStats(meta).latestMonth;
     const tags=(meta.tags||[]).map(t=>typeof t==='string'?t:t.text||'').filter(Boolean);
-    const attractions=(meta.attractions||[]).map(a=>a.name||'').filter(Boolean);
+    const attractions=publicRoutesOf(meta);
     const v=existing.visibility||{};
     existing.rating=v.rating!==false?meta.rating||0:0;
     existing.intro=v.description!==false?meta.description||'':'';
@@ -15534,7 +16296,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   });
 
   /* =====【取消点亮】清空当前城市所有上传编辑内容 =====
-   * 删除范围：该城市全部照片 + 城市元数据（封面/星级/年月/标签/景点）
+   * 删除范围：该城市全部照片 + 城市元数据（封面/星级/出生年月/标签/徒步路线）
    * 删除后：从 citiesWithPhotos 移除、刷新卡片/地图/统计、关闭弹窗
    * 业务逻辑：仅清空当前城市数据，不影响其他城市
    */
@@ -15543,7 +16305,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const cityKey=currentCity.cityKey;
     const cityName=currentCity.name;
     // 二次确认，避免误删
-    if(!confirm('确定要取消点亮「'+cityName+'」吗？\n\n将清空该城市的：\n• 所有照片（'+(photoCountByCity.get(cityKey)||0)+' 张）\n• 城市封面\n• 推荐指数\n• 游玩年月\n• 标签\n• 景点\n\n此操作不可撤销。')) return;
+    if(!confirm('确定要取消点亮「'+cityName+'」吗？\n\n将清空该城市的：\n• 所有照片（'+(photoCountByCity.get(cityKey)||0)+' 张）\n• 城市封面\n• 推荐指数\n• 标签\n• 徒步路线\n\n此操作不可撤销。')) return;
     try{
       // 1. 删除该城市所有照片（用 cityKey 索引批量删除）
       const db=await openDB();
@@ -15583,7 +16345,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   $('unlightBtn').addEventListener('click',unlightCity);
 
   /* ---------- 已点亮城市卡片展示区 ---------- */
-  // 渲染城市卡片列表（按游玩年月倒序，无年月的按照片最新排后）
+  // 渲染城市卡片列表（按最近路线月份倒序，无时间的按照片最新排后）
   async function renderCityCards(){
     if(!citiesWithPhotos.size){
       cityCardsListEl.innerHTML='';
@@ -15594,29 +16356,52 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     // 启动阶段照片数据可能先于地图城市索引返回，此时保留现有内容，等待地图就绪后再渲染。
     if(!cityPoints.length) return;
     cityCardsEmptyEl.style.display='none';
-    // 收集已点亮城市信息
+    // 收集已点亮城市信息（顶层列表按「城市」组织：每个城市一张卡，卡内列出该城市的徒步路线）
     const items=[];
     for(const cityKey of citiesWithPhotos){
       const cp=cityPoints.find(c=>c.cityKey===cityKey);
       if(!cp) continue;
       const meta=await getCityMeta(cityKey);
       const photos=await getPhotosByCity(cityKey);
-      const mediaCounts=countMedia(photos);
-      const visitMonths=getVisitMonths(meta);
+      const routes=Array.isArray(meta.attractions)?meta.attractions:[];
+      const cityStats=getRouteStats(meta);
+      // 该城市全部路线下的媒体副本 → 回连城市相册里的原始条目（保留视频 blob 与完整 dataUrl）
+      const routeMedia=routeMediaList(routes);
+      const mediaIds=new Set(routeMedia.map(m=>String(m&&m.id)).filter(Boolean));
+      const albumHits=photos.filter(p=>mediaIds.has(String(p.id)));
+      const hitIds=new Set(albumHits.map(p=>String(p.id)));
+      const extras=routeMedia.filter(m=>!hitIds.has(String(m&&m.id)));
+      const displayAlbum=albumHits.concat(extras);
+      const mediaCounts=countMedia(displayAlbum);
+      // 每条路线一行（只读，两行制）：
+      // 第一行 = 路线名（左）+ 日期·次数（右）
+      //   第二行 = 爬升 · 距离（metrics 为空串时整行不渲染）
+      const routeRows=routes.map((route,routeIndex)=>{
+        const stats=getRouteStats({attractions:[route]});
+        return {
+          route, routeIndex,
+          name:route.name||('路线 '+(routeIndex+1)),
+          metrics:routeDistanceGainText(route),
+          lastDate:stats.latestDate,
+          visitCount:stats.visitCount
+        };
+      });
       items.push({
         cityKey, name:cp.name, value:cp.value, adcode:cp.adcode,
-        visitMonth:getLatestVisitMonth(visitMonths),
-        visitMonths,
+        cityStats,
+        routeRows,
+        visitMonth:cityStats.latestMonth,
+        visitMonths:cityStats.months,
         tags:meta.tags||[],
         rating:meta.rating||0,
         coverImage:meta.coverImage||'',
-        attractions:meta.attractions||[],
-        thumbs:photos.slice(0,4).map(p=>p.dataUrl),
-        allPhotos:photos,
+        attractions:routes,
+        thumbs:displayAlbum.slice(0,4).map(p=>p.dataUrl),
+        allPhotos:displayAlbum,
         photoCount:mediaCounts.photos,
         videoCount:mediaCounts.videos,
         mediaCount:mediaCounts.total,
-        latestOrder:photos.length?Math.max(...photos.map(p=>p.order||0)):0
+        latestOrder:displayAlbum.length?Math.max(...displayAlbum.map(p=>p.order||0)):0
       });
     }
     // 排序：有年月的按年月倒序，无年月的按照片 order 倒序排在最后
@@ -15632,17 +16417,46 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const card=document.createElement('div');
       card.className='city-card';
       card.dataset.cityKey=item.cityKey;
-      // 卡片头部：城市名 + 游玩年月
+      // 卡片头部：只保留城市名（小号灰标签）
       const head=document.createElement('div');
       head.className='city-card-head';
       const nameEl=document.createElement('span');
       nameEl.className='city-card-name';
       nameEl.textContent=item.name;
-      const dateEl=document.createElement('span');
-      dateEl.className='city-card-date';
-      dateEl.textContent=item.visitMonths.length?formatVisitMonthSummary(item.visitMonths):('· '+formatMediaCounts({photos:item.photoCount,videos:item.videoCount}));
-      dateEl.title=item.visitMonths.map((month,index)=>'第'+(index+1)+'次：'+formatMonth(month)).join('\n');
-      head.append(nameEl,dateEl);
+      head.appendChild(nameEl);
+      // 卡内徒步路线列表（只读行：点击冒泡到卡片 → 打开城市编辑弹窗）
+      const routesBox=document.createElement('div');
+      routesBox.className='city-card-routes';
+      const MAX_ROUTE_ROWS=5;
+      item.routeRows.slice(0,MAX_ROUTE_ROWS).forEach(row=>{
+        const line=document.createElement('div');
+        line.className='city-card-route';
+        // 第一行：路线名（左）+ 日期·次数（右）
+        const top=document.createElement('div');
+        top.className='city-card-route-top';
+        const rName=document.createElement('span');
+        rName.className='city-card-route-name';
+        rName.textContent=row.name;
+        const timeEl=document.createElement('span');
+        timeEl.className='city-card-route-time';
+        timeEl.textContent=(row.lastDate||'未记录日期')+' · '+row.visitCount+' 次';
+        top.append(rName,timeEl);
+        line.appendChild(top);
+        // 第二行：爬升 · 距离（两者都缺 → 整行不渲染，不留空位）
+        if(row.metrics){
+          const metaEl=document.createElement('span');
+          metaEl.className='city-card-route-meta';
+          metaEl.textContent=row.metrics;
+          line.appendChild(metaEl);
+        }
+        routesBox.appendChild(line);
+      });
+      if(item.routeRows.length>MAX_ROUTE_ROWS){
+        const more=document.createElement('div');
+        more.className='city-card-route-more';
+        more.textContent='+'+(item.routeRows.length-MAX_ROUTE_ROWS)+' 条路线';
+        routesBox.appendChild(more);
+      }
       // 缩略图行
       const thumbsRow=document.createElement('div');
       thumbsRow.className='city-card-thumbs';
@@ -15694,7 +16508,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         meteorsLayer.appendChild(m);
       }
       card.appendChild(meteorsLayer);
-      card.append(head,thumbsRow,tagsRow);
+      card.append(head,routesBox,thumbsRow,tagsRow);
       // ===== Wobble Card 摆动效果（对标 aceternity wobble-card）=====
       // 【修复点】减小旋转角度 3→2deg、降低 scale 1.01→1.008，弱化横向偏移避免左侧裁切
       const WOBBLE_CONFIG={maxRotate:2,scale:1.008};
@@ -15848,11 +16662,14 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       // === 信息区 ===
       const body=document.createElement('div');
       body.className='grid-card-body';
-      // 城市名
+      // 城市名称（主）；emoji 仍按城市名取
       const name=document.createElement('div');
       name.className='grid-card-name';
-      name.innerHTML='<span>'+cityEmoji(item.name)+'</span> '+item.name.replace(/市$/,'');
-      // 省份
+      const nameEmoji=document.createElement('span');
+      nameEmoji.textContent=cityEmoji(item.name);
+      name.appendChild(nameEmoji);
+      name.appendChild(document.createTextNode(' '+item.name.replace(/市$/,'')));
+      // 省份（次）
       const provEl=document.createElement('div');
       provEl.className='grid-card-province';
       provEl.textContent='📍 '+prov;
@@ -15880,8 +16697,12 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       meta.className='grid-card-meta';
       const date=document.createElement('span');
       date.className='grid-card-date';
-      date.textContent=item.visitMonths.length?formatVisitMonthSummary(item.visitMonths):'未记录';
-      date.title=item.visitMonths.map((month,index)=>'第'+(index+1)+'次：'+formatMonth(month)).join('\n');
+      date.textContent=item.cityStats.months.length?formatRouteTimeRange(item.cityStats):'未记录';
+      date.title=(item.cityStats.visits||[]).map(v=>{
+        const d=(v.visit&&v.visit.visitDate)||'';
+        const notes=(v.visit&&v.visit.notes)||'';
+        return (d||'未填日期')+(notes?(' · '+notes.slice(0,40)):'');
+      }).join('\n');
       const stars=document.createElement('span');
       stars.className='star-display';
       stars.innerHTML=renderStars(item.rating);
@@ -15981,13 +16802,6 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     if(parts.length<2) return ym;
     return parts[0]+'年'+parseInt(parts[1])+'月';
   }
-  function getLatestVisitMonth(months){
-    return (months||[]).reduce((latest,month)=>month>latest?month:latest,'');
-  }
-  function formatVisitMonthSummary(months){
-    const latest=getLatestVisitMonth(months);
-    return latest?(formatMonth(latest)+(months.length>1?' · 共'+months.length+'次':'')):'';
-  }
   // 聚焦地图到指定城市
   function focusCityOnMap(item){
     if(!myChart) return;
@@ -16048,7 +16862,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   function resetCityAddSelection(){
     cityAddSelection=null;
     cityAddSubmitEl.disabled=true;
-    cityAddSubmitEl.textContent='请先选择一座城市';
+    cityAddSubmitEl.textContent='请先选择城市';
   }
   function closeCityAddDialog(){
     cityAddOverlayEl.classList.remove('show');
@@ -16066,7 +16880,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       item.setAttribute('aria-selected',String(selected));
     });
     cityAddSubmitEl.disabled=false;
-    cityAddSubmitEl.textContent='收藏这段旅程';
+    cityAddSubmitEl.textContent='添加徒步路线';
   }
   function renderCityAddResults(query){
     query=(query||'').trim();
@@ -16124,10 +16938,19 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       else cityAddResultsEl.querySelector('.city-add-result')?.click();
     }
   });
-  cityAddSubmitEl.addEventListener('click',()=>{
+  cityAddSubmitEl.addEventListener('click',async ()=>{
     if(!cityAddSelection) return;
     const city=cityAddSelection;
     closeCityAddDialog();
+    // 新增的是「一条徒步路线」：挂在所选城市下，坐标默认取城市质心
+    try{
+      await addRouteToCity(city);
+    }catch(e){
+      console.error(e);
+      toast('添加徒步路线失败：'+(e.message||e),true);
+      return;
+    }
+    renderCityCards();
     openCityModal(city);
   });
 
@@ -16415,13 +17238,15 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         const meta=await getCityMeta(currentCity.cityKey);
         let removed=false;
         (meta.attractions||[]).forEach(att=>{
-          const arr=att.photos||[];
-          for(let i=arr.length-1;i>=0;i--){
-            const ph=arr[i];
-            if((photo.dataUrl&&ph.dataUrl===photo.dataUrl)||(photo.storagePath&&ph.storagePath===photo.storagePath)){
-              arr.splice(i,1); removed=true;
+          routeVisits(att).forEach(visit=>{
+            const arr=(visit&&visit.photos)||[];
+            for(let i=arr.length-1;i>=0;i--){
+              const ph=arr[i];
+              if((photo.dataUrl&&ph.dataUrl===photo.dataUrl)||(photo.storagePath&&ph.storagePath===photo.storagePath)){
+                arr.splice(i,1); removed=true;
+              }
             }
-          }
+          });
         });
         if(removed){
           await saveCityMeta(meta);
@@ -16991,9 +17816,8 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   modalClose.addEventListener('click',closeModal);
   modalOverlay.addEventListener('click',e=>{ if(e.target===modalOverlay) closeModal(); });
   lightbox.addEventListener('click',closeLightbox);
-  // 多次游玩年月
-  monthAddBtn.addEventListener('click',addVisitMonthInput);
-  monthSaveBtn.addEventListener('click',saveVisitMonths);
+  // 家乡出生年月
+  birthMonthSaveBtn.addEventListener('click',saveBirthMonth);
   // 标签添加
   tagAddBtn.addEventListener('click',addTag);
   tagInput.addEventListener('keydown',e=>{ if(e.key==='Enter') addTag(); });
@@ -17070,7 +17894,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const fab=document.createElement('button');
     fab.className='fs-fab';
     fab.textContent='+';
-    fab.title='添加新城市';
+    fab.title='添加徒步路线';
     fab.addEventListener('click',openCityAddDialog);
     document.body.appendChild(fab);
   }
@@ -17422,7 +18246,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     let meta=null;
     if(home){ try{ meta=await getCityMeta(home.cityKey); }catch(e){ meta=null; } }
     const tags=meta?(meta.tags||[]).map(t=>typeof t==='string'?t:(t&&t.text)||'').filter(Boolean):[];
-    const attractions=meta?(meta.attractions||[]).map(a=>(a&&a.name)||'').filter(Boolean):[];
+    const attractions=meta?publicRoutesOf(meta):[];
     const travelStats=await getProfileTravelStats();
     return {
       user_id:cloudUser&&cloudUser.id?cloudUser.id:null,
@@ -17432,7 +18256,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       is_public:!!isPublic,
       hometown_city_name:home?home.name:'',
       hometown_description:meta?(meta.description||''):'',
-      birth_month:meta?(getVisitMonths(meta)[0]||''):'',
+      birth_month:meta?(meta.birthMonth||''):'',
       tags:tags,
       attractions:attractions,
       visited_city_count:travelStats.cities,
@@ -17483,8 +18307,12 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     return '<div class="pp-tags">'+tags.map(t=>'<span class="pp-tag">#'+escapeHtml(t)+'</span>').join('')+'</div>';
   }
   function ppAttractionsHtml(attractions){
-    if(!attractions||!attractions.length) return '<span class="pp-row-value empty">暂无景点信息</span>';
-    return '<div class="pp-chips">'+attractions.map(a=>'<span class="pp-chip">'+escapeHtml(a)+'</span>').join('')+'</div>';
+    const routes=normalizePublicRoutes(attractions);
+    if(!routes.length) return '<span class="pp-row-value empty">暂无徒步路线信息</span>';
+    return '<div class="pp-chips">'+routes.map(route=>{
+      const label=route.name+(route.difficulty?(' · '+DIFFICULTY_LABELS[route.difficulty]):'');
+      return '<span class="pp-chip">'+escapeHtml(label)+'</span>';
+    }).join('')+'</div>';
   }
 
   async function getProfileTravelStats(){
@@ -17574,7 +18402,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const records=await window.TravelImageAtlas.collect(data.entries,getPhotosByCity,years||{});
       if(request!==imageAtlasRequest)return;
       imageAtlasRecords=records;imageAtlasYears=years||{};
-      imageAtlasJourney=data.entries.map(entry=>({cityKey:entry.city.cityKey,name:entry.city.name,month:entry.month||'',date:entry.date||'',visitOrder:entry.visitOrder||1}));
+      imageAtlasJourney=data.entries.map(entry=>({cityKey:entry.city.cityKey,name:entry.city.name,month:entry.month||'',date:entry.date||'',visitOrder:entry.routeOrder||1}));
       mountImageAtlas();
     }catch(error){
       if(request!==imageAtlasRequest)return;
@@ -17617,24 +18445,42 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   async function collectJourneyArchiveData(){
     const cities=await collectTimelineCities();
     const entries=[];
-    let attractionCount=0;
+    let routeCount=0;
     for(const city of cities){
       const meta=await getCityMeta(city.cityKey);
-      const months=getVisitMonths(meta);
-      const visits=months.length?months:[city.visitMonth||''];
-      const attractions=meta.attractions||[];
-      attractionCount+=attractions.length;
-      visits.forEach((month,visitIndex)=>{
-        const exactDate=attractions.map(att=>att&&att.visitDate||'').filter(date=>date&&(!month||date.startsWith(month))).sort()[0]||'';
-        entries.push({city,month:month||'',date:exactDate,visitOrder:visitIndex+1,meta});
+      const stats=getRouteStats(meta);
+      routeCount+=stats.count;
+      stats.routes.forEach((route,routeIndex)=>{
+        // 经历级条目：一条路线下的每次徒步各占一条时间轴
+        const visits=routeVisits(route);
+        if(!visits.length){
+          entries.push({
+            city, route, visit:null, meta,
+            month:'', date:'',
+            routeOrder:routeIndex+1, visitOrder:1,
+            routeName:route.name||('路线 '+(routeIndex+1))
+          });
+          return;
+        }
+        visits.forEach((visit,visitIndex)=>{
+          const date=String((visit&&visit.visitDate)||'');
+          entries.push({
+            city, route, visit, meta,
+            month:date?String(date).slice(0,7):'',
+            date,
+            routeOrder:routeIndex+1,
+            visitOrder:visitIndex+1,
+            routeName:route.name||('路线 '+(routeIndex+1))
+          });
+        });
       });
     }
-    entries.sort((a,b)=>(b.month||'0000-00').localeCompare(a.month||'0000-00'));
-    return {cities,entries,attractionCount};
+    entries.sort((a,b)=>(b.date||b.month||'0000-00').localeCompare(a.date||a.month||'0000-00'));
+    return {cities,entries,routeCount,attractionCount:routeCount};
   }
 
   function archiveEmptyHtml(){
-    return '<div class="journey-empty"><strong>还没有人生足迹</strong><span>先在地图上点亮城市并填写游玩年月。</span></div>';
+    return '<div class="journey-empty"><strong>还没有人生足迹</strong><span>先在地图上点亮城市并添加徒步路线。</span></div>';
   }
 
   async function collectLifeDomePhotos(entries){
@@ -17667,16 +18513,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const indexedEntries=[];
     const timelineHtml='<div class="life-year-list">'+[...years].map(([year,entries])=>{
       const cityCount=new Set(entries.map(entry=>entry.city.cityKey)).size;
+      const yearRouteCount=new Set(entries.map(entry=>entry.city.cityKey+'::'+entry.routeOrder)).size;
       const yearNote=year==='未记录'
-        ?'这些城市已经点亮，旅途时间还等待补充。'
-        :'这一年，共抵达 '+entries.length+' 次，走过 '+cityCount+' 座城市。';
+        ?'这些城市已经点亮，徒步路线时间还等待补充。'
+        :'这一年，共走过 '+yearRouteCount+' 条路线、'+entries.length+' 次徒步，途经 '+cityCount+' 座城市。';
       return '<section class="life-year">'+
         '<div class="life-year-label">'+escapeHtml(year)+'</div>'+
         '<div class="life-year-spine"><i></i></div>'+
-        '<div class="life-year-content"><div class="life-year-summary">'+entries.length+' 次旅程</div>'+
+        '<div class="life-year-content"><div class="life-year-summary">'+yearRouteCount+' 条路线</div>'+
           '<p class="life-year-note">'+escapeHtml(yearNote)+'</p>'+
           '<div class="life-year-cities">'+entries.map(entry=>
-            (indexedEntries.push(entry),'<div class="life-city-stop"><i></i><button class="life-city-entry" type="button" data-life-entry="'+(entryIndex++)+'" aria-label="查看'+escapeHtml(entry.city.name)+'的城市详情"><b>'+escapeHtml(entry.city.name)+'</b><em>'+(entry.date?escapeHtml(entry.date):(entry.month?escapeHtml(entry.month):'时间未记录'))+'</em><span>第 '+entry.visitOrder+' 次抵达</span></button></div>')
+            (indexedEntries.push(entry),'<div class="life-city-stop"><i></i><button class="life-city-entry" type="button" data-life-entry="'+(entryIndex++)+'" aria-label="查看'+escapeHtml(entry.city.name)+'的城市详情"><b>'+escapeHtml(entry.city.name)+'</b><em>'+(entry.date?escapeHtml(entry.date):(entry.month?escapeHtml(entry.month):'时间未记录'))+'</em><span>第 '+entry.routeOrder+' 条路线 · '+escapeHtml(entry.routeName)+'</span></button></div>')
           ).join('')+'</div></div>'+
       '</section>';
     }).join('')+'</div>';
@@ -17732,17 +18579,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const metrics=[
       ['已去城市',profileStats.cities,'座','按城市名称计算'],
       ['已去省份',profileStats.provinces,'个','按省份名称计算',coverage],
-      ['旅途次数',data.entries.length,'次','每次游玩年月计一次'],
+      ['徒步路线',data.routeCount,'条','每条徒步路线计一次'],
       ['总计行程',Math.round(profileStats.totalKm),'km','按旅行路线估算'],
       ['珍藏照片',totalPhotoCount,'张','汇总全部城市照片'],
-      ['记录景点',data.attractionCount,'处','汇总全部城市景点']
+      ['记录城市',data.cities.length,'座','汇总全部点亮城市']
     ];
     journeyArchiveBodyEl.innerHTML=
       '<div class="journey-stat-strip">'+metrics.map(m=>'<article class="journey-stat-tile"><span>'+m[0]+'</span>'+(m[4]===undefined?'<strong>'+Number(m[1]).toLocaleString('zh-CN')+'<em>'+m[2]+'</em></strong>':'<div class="journey-stat-main"><strong>'+Number(m[1]).toLocaleString('zh-CN')+'<em>'+m[2]+'</em></strong><div class="journey-stat-coverage" role="img" aria-label="全国省份覆盖率 '+m[4]+'%" style="--coverage:'+m[4]*3.6+'deg"><div><b>'+m[4]+'%</b><span>'+m[1]+'/34</span></div></div></div>')+'<small>'+m[3]+'</small></article>').join('')+'</div>'+
       '<div class="journey-insight-grid">'+
-        '<section class="journey-chart"><h3>年度足迹趋势</h3><p>每年记录的抵达次数</p><div class="year-bars">'+(years.length?years.map(y=>'<div class="year-bar"><span>'+y[1]+'次</span><i style="height:'+Math.max(8,y[1]/maxYear*100)+'%"></i><b>'+y[0]+'</b></div>').join(''):'<div class="journey-empty">暂无年份数据</div>')+'</div></section>'+
-        '<section class="journey-chart"><h3>城市到访排行</h3><p>按游玩年月记录数量排序</p><div class="city-rank-list is-scrollable" tabindex="0" aria-label="城市到访排行前十名">'+ranking.map((r,i)=>'<div class="city-rank-row"><b>'+String(i+1).padStart(2,'0')+'</b><span title="'+escapeHtml(r[0])+'">'+escapeHtml(r[0])+'</span><i><em style="width:'+r[1]/maxRank*100+'%"></em></i><strong>'+r[1]+'次</strong></div>').join('')+'</div></section>'+
-        '<section class="journey-chart"><h3>月份出行频率</h3><p>历年各月份抵达次数</p><div class="month-bars-archive">'+monthCounts.map((count,i)=>'<div class="month-bar-archive"><span>'+(count||'')+'</span><i style="height:'+Math.max(4,count/maxMonth*100)+'%"></i><b>'+(i+1)+'月</b></div>').join('')+'</div></section>'+
+        '<section class="journey-chart"><h3>年度足迹趋势</h3><p>每年记录的路线数量</p><div class="year-bars">'+(years.length?years.map(y=>'<div class="year-bar"><span>'+y[1]+'条</span><i style="height:'+Math.max(8,y[1]/maxYear*100)+'%"></i><b>'+y[0]+'</b></div>').join(''):'<div class="journey-empty">暂无年份数据</div>')+'</div></section>'+
+        '<section class="journey-chart"><h3>城市到访排行</h3><p>按徒步路线数量排序</p><div class="city-rank-list is-scrollable" tabindex="0" aria-label="城市到访排行前十名">'+ranking.map((r,i)=>'<div class="city-rank-row"><b>'+String(i+1).padStart(2,'0')+'</b><span title="'+escapeHtml(r[0])+'">'+escapeHtml(r[0])+'</span><i><em style="width:'+r[1]/maxRank*100+'%"></em></i><strong>'+r[1]+'条</strong></div>').join('')+'</div></section>'+
+        '<section class="journey-chart"><h3>月份出行频率</h3><p>历年各月份路线数量</p><div class="month-bars-archive">'+monthCounts.map((count,i)=>'<div class="month-bar-archive"><span>'+(count||'')+'</span><i style="height:'+Math.max(4,count/maxMonth*100)+'%"></i><b>'+(i+1)+'月</b></div>').join('')+'</div></section>'+
         '<section class="journey-chart"><h3>推荐指数排行</h3><p>按城市推荐指数由高到低排序</p><div class="city-rank-list is-scrollable" tabindex="0" aria-label="城市推荐指数排行前十名">'+ratingRanking.map((r,i)=>'<div class="city-rank-row"><b>'+String(i+1).padStart(2,'0')+'</b><span title="'+escapeHtml(r.name)+'">'+escapeHtml(r.name)+'</span><i><em style="width:'+r.rating/5*100+'%"></em></i><strong>'+(r.rating?r.rating+'星':'未评分')+'</strong></div>').join('')+'</div></section>'+
       '</div>';
   }
@@ -18070,12 +18917,13 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const province=provinceOf(city.adcode);
       if(!province) continue;
       const meta=await getCityMeta(city.cityKey);
-      const months=getVisitMonths(meta).slice().sort();
+      const routeStats=getRouteStats(meta);
+      const months=routeStats.months;
       const cover=meta.coverImage||(thumbCacheByCity.get(city.cityKey)||[])[0]||'';
       const item=Object.assign({},city,{
-        meta,months,cover,
-        firstMonth:months[0]||city.visitMonth||'',
-        latestMonth:months[months.length-1]||city.visitMonth||'',
+        meta,months,cover,routeStats,
+        firstMonth:routeStats.firstMonth,
+        latestMonth:routeStats.latestMonth,
         photoCount:photoCountByCity.get(city.cityKey)||city.photoCount||0,
         sharePhotoCount:sharePhotoCounts.get(city.cityKey)||0
       });
@@ -18084,7 +18932,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     }
     const books=[...groups].map(([name,provinceCities])=>{
       provinceCities.sort((a,b)=>(a.firstMonth||'9999-99').localeCompare(b.firstMonth||'9999-99')||a.name.localeCompare(b.name,'zh-CN'));
-      const dated=provinceCities.flatMap(city=>city.months.length?city.months:(city.visitMonth?[city.visitMonth]:[])).filter(Boolean).sort();
+      const dated=provinceCities.flatMap(city=>city.months||[]).filter(Boolean).sort();
       const latestCity=provinceCities.slice().sort((a,b)=>(b.latestMonth||'').localeCompare(a.latestMonth||''))[0];
       const coverCity=provinceCities.slice().reverse().find(city=>city.cover)||provinceCities.find(city=>city.cover);
       return {
@@ -18315,7 +19163,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     clearTimeout(memoryShelfState.pageTimer);memoryShelfState.level='shelf';memoryShelfState.province=null;memoryShelfState.city=null;memoryShelfState.photos=[];memoryShelfState.page=0;memoryShelfState.dragOffset=0;memoryShelfState.pageShift=0;memoryShelfState.paging=false;memoryShelfState.bookRotation=null;memoryShelfState.opening=false;
     memorySetHeader('旅行书架','拖动书架选择省份，长按中心书籍可左右旋转，再次点击即可翻开城市章节。');
     if(!memoryShelfState.provinces.length){
-      memoryShelfBodyEl.innerHTML='<div class="memory-empty"><strong>你的旅行故事还没有开始</strong><span>点亮第一座城市，它会成为书架上的第一本书。</span><button id="memoryLightFirst" type="button">去点亮城市</button></div>';
+      memoryShelfBodyEl.innerHTML='<div class="memory-empty"><strong>你的旅行故事还没有开始</strong><span>添加第一条徒步路线，它会成为书架上的第一本书。</span><button id="memoryLightFirst" type="button">去添加徒步路线</button></div>';
       $('memoryLightFirst').addEventListener('click',()=>{closeMemoryShelf();openCityAddDialog();});
       return;
     }
@@ -18938,12 +19786,12 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         const cityName=photo.cityName||city?.name||meta.cityName||cityKey||'旅行照片';
         items.push({id:'travel-photo-'+items.length,cityKey,source,storagePath:photo.storagePath||'',city:cityName,
           description:[cityName,photo.name].filter(Boolean).join(' · '),
-          date:getVisitMonths(meta)[0]||'',text:''});
+          date:getRouteStats(meta).firstDate.slice(0,7),text:''});
       };
-      // 与主页共用相册记录来源，不补入景点照片/封面，也不按图片内容合并记录。
+      // 与主页共用相册记录来源，不补入徒步路线照片/封面，也不按图片内容合并记录。
       photos.sort((a,b)=>(a.order||a.timestamp||0)-(b.order||b.timestamp||0)).forEach(photo=>add(photo,photo.cityKey));
       photoStreamItems=items;
-      if(!items.length){photoStreamStage.textContent='还没有旅行照片。在城市或景点中上传照片后，这里会自动汇集。';return;}
+      if(!items.length){photoStreamStage.textContent='还没有旅行照片。在城市或徒步路线中上传照片后，这里会自动汇集。';return;}
       const frame=document.createElement('iframe');frame.title='旅途照片流';
       frame.srcdoc=window.TravelPhotoStreamDocument;
       frame.style.cssText='width:100%;height:100%;border:0;display:block;';photoStreamStage.replaceChildren(frame);
@@ -19052,9 +19900,9 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     let meta=null;
     if(home){ try{ meta=await getCityMeta(home.cityKey); }catch(e){ meta=null; } }
     const desc=meta?(meta.description||''):'';
-    const birthMonth=meta?(getVisitMonths(meta)[0]||''):'';
+    const birthMonth=meta?(meta.birthMonth||''):'';
     const tags=meta?(meta.tags||[]).map(t=>typeof t==='string'?t:(t&&t.text)||'').filter(Boolean):[];
-    const attractions=meta?(meta.attractions||[]).map(a=>(a&&a.name)||'').filter(Boolean):[];
+    const attractions=meta?publicRoutesOf(meta):[];
     const isPublic=getProfilePublicFlag();
     const travelStats=await getProfileTravelStats();
 
@@ -19087,7 +19935,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
           '<div class="pp-row"><span class="pp-row-label">家乡简介</span>'+(desc?'<span class="pp-row-value">'+escapeHtml(desc)+'</span>':'<span class="pp-row-value empty">暂未填写家乡简介</span>')+'</div>'+
           '<div class="pp-row"><span class="pp-row-label">出生年月</span>'+(birthMonth?'<span class="pp-row-value">'+formatMonth(birthMonth)+'</span>':'<span class="pp-row-value empty">暂未填写</span>')+'</div>'+
           '<div class="pp-row"><span class="pp-row-label">标签</span>'+ppTagsHtml(tags)+'</div>'+
-          '<div class="pp-row"><span class="pp-row-label">景点</span>'+ppAttractionsHtml(attractions)+'</div>'+
+          '<div class="pp-row"><span class="pp-row-label">徒步路线</span>'+ppAttractionsHtml(attractions)+'</div>'+
         '</div>'+
       '</div>'+
       '<div class="pp-block pp-public-block">'+
@@ -19190,7 +20038,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
           '<div class="pp-row"><span class="pp-row-label">家乡简介</span>'+(desc?'<span class="pp-row-value">'+escapeHtml(desc)+'</span>':'<span class="pp-row-value empty">暂未填写家乡简介</span>')+'</div>'+
           '<div class="pp-row"><span class="pp-row-label">出生年月</span>'+(birthMonth?'<span class="pp-row-value">'+formatMonth(birthMonth)+'</span>':'<span class="pp-row-value empty">暂未填写</span>')+'</div>'+
           '<div class="pp-row"><span class="pp-row-label">标签</span>'+ppTagsHtml(tags)+'</div>'+
-          '<div class="pp-row"><span class="pp-row-label">景点</span>'+ppAttractionsHtml(attractions)+'</div>'+
+          '<div class="pp-row"><span class="pp-row-label">徒步路线</span>'+ppAttractionsHtml(attractions)+'</div>'+
         '</div>'+
       '</div>';
     renderAvatarInto($('pubAvatar'),data.avatar_url,nickname);

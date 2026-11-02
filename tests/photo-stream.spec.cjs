@@ -11,11 +11,12 @@ const fixture=`<!doctype html><body><script src="assets/photo-stream/embedded.js
 const $=id=>document.getElementById(id), appStartPromise=Promise.resolve();
 const canvas=document.createElement('canvas');canvas.width=canvas.height=32;const ctx=canvas.getContext('2d');
 let records=Array.from({length:51},(_,i)=>{ctx.fillStyle='hsl('+i*7+',70%,55%)';ctx.fillRect(0,0,32,32);return {id:i,cityKey:'city-1',cityName:'孝感市',name:'照片 '+i,dataUrl:canvas.toDataURL(),order:i};});
-const extra={dataUrl:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="red"/></svg>'),name:'景点照片'};
-const getAllPhotos=async()=>records,getAllCityMeta=async()=>supplemental?[{cityKey:'city-1',coverImage:records.find(p=>p.kind!=='video')?.dataUrl,attractions:[{name:'景点',photos:[records[0],extra],notes:'真实笔记',visitDate:'2026-09-01'}]}]:[];
+const extra={dataUrl:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="red"/></svg>'),name:'路线照片'};
+const getAllPhotos=async()=>records,getAllCityMeta=async()=>supplemental?[{cityKey:'city-1',coverImage:records.find(p=>p.kind!=='video')?.dataUrl,attractions:[{name:'虎丘山径',difficulty:'moderate',distanceKm:8.5,elevationGain:320,maxAltitude:480,lng:120.5712,lat:31.3364,visits:[{visitDate:'2026-09-01',notes:'真实笔记',photos:[records[0],extra]}]}]}]:[];
 let provinceBooks={},supplemental=true;
 const memoryProvinceBookSettings=()=>provinceBooks;
-const cityPoints=[{cityKey:'city-1',name:'孝感市'}],getVisitMonths=()=>[],downloadCloudImage=async path=>{if(path==='saved-cloud-photo')return extra.dataUrl;throw Error('测试下载失败');};
+const getRouteStats=meta=>{const routes=(meta&&Array.isArray(meta.attractions))?meta.attractions:[];const visits=[];routes.forEach(r=>{const list=Array.isArray(r&&r.visits)?r.visits:(r&&(r.visitDate||r.notes||r.photos)?[r]:[]);visits.push(...list);});const dates=visits.map(v=>String((v&&v.visitDate)||'')).filter(d=>/^\d{4}-\d{2}-\d{2}/.test(d)).sort();const months=[...new Set(dates.map(d=>d.slice(0,7)))].sort();return{count:routes.length,routes,visits,visitCount:visits.length,dates,months,firstMonth:months[0]||'',latestMonth:months[months.length-1]||'',firstDate:dates[0]||'',latestDate:dates[dates.length-1]||'',datedCount:dates.length};};
+const cityPoints=[{cityKey:'city-1',name:'孝感市'}],downloadCloudImage=async path=>{if(path==='saved-cloud-photo')return extra.dataUrl;throw Error('测试下载失败');};
 ${bridge}</script></body>`;
 const server=http.createServer((req,res)=>{
   if(req.url==='/'){res.setHeader('Content-Type','text/html; charset=utf-8');return res.end(fixture);}
@@ -141,11 +142,11 @@ const server=http.createServer((req,res)=>{
     assert.equal(await frame().evaluate(()=>window.__undertow.stories[0].chapters[50].text),'');
     await page.getByRole('button',{name:'关闭',exact:true}).click();
     assert.equal(await page.locator('iframe').count(),0,'关闭后销毁渲染器');
-    console.log('PASS: 一城一线、51张相册照片完整覆盖、不额外加入景点照片和封面、目录定位最后一张、原图放大、关闭释放');
+    console.log('PASS: 一城一线、51张相册照片完整覆盖、不额外加入路线照片和封面、目录定位最后一张、原图放大、关闭释放');
     await page.evaluate(()=>{records=[{id:100,kind:'video',dataUrl:'data:video/mp4;base64,AAA'},{...records[1],id:101}];});
     await page.getByRole('button',{name:'照片流',exact:true}).click();
     const catalog=await page.evaluate(()=>window.TravelPhotoStreamBridge.readCatalog());
-    assert.equal(catalog.total,1,'仅导入城市相册图片，排除视频和额外景点照片');
+    assert.equal(catalog.total,1,'仅导入城市相册图片，排除视频和额外路线照片');
     await ready();
     await page.getByRole('button',{name:'关闭',exact:true}).click();
     await page.setViewportSize({width:390,height:844});
@@ -161,7 +162,7 @@ const server=http.createServer((req,res)=>{
     });
     await page.getByRole('button',{name:'照片流',exact:true}).click();
     const sources=await page.evaluate(()=>window.TravelPhotoStreamBridge.readCatalog());
-    assert.equal(sources.total,2,'不同照片同ID不丢失，不混入独立封面和景点照片');
+    assert.equal(sources.total,2,'不同照片同ID不丢失，不混入独立封面和路线照片');
     assert.ok(sources.photos.some(p=>p.description.includes('云端照片')&&p.src.startsWith('data:image/')));
     assert.ok(sources.photos.every(p=>p.cityKey==='city-1'));
     console.log('PASS: 仅使用主页相册数据，云端照片正常读取');

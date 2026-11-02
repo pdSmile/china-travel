@@ -68,6 +68,165 @@
 - 当前工作目录：`F:\03-agent项目\codex\codex-list\projects\Your-China-Travel`。
 - 云同步安全基线：`9ee1b61`。
 
+### 徒步路线数据模型（城市 → 徒步路线 → 徒步经历 三层）
+
+数据层级已从「城市 → 扁平路线」升级为三层：一条城市下可挂**多条徒步路线**，每条路线下可挂**多条徒步经历**。城市不再有独立的游玩年月字段，所有时间与次数都从路线下的经历推导。
+
+```text
+城市 city（IndexedDB cityMeta，主键 cityKey = adcode_name）
+ └── 徒步路线 route × N       ← meta.attractions[i]（物理键名仍是 attractions）
+      ├── 路线名称 name / 线路难度 difficulty
+      ├── 路线数据 distanceKm / elevationGain / maxAltitude
+      ├── 坐标 lng / lat（新建默认取所选城市质心，**可编辑**）
+      └── 徒步经历 visit × N   ← route.visits[j]
+           ├── 游玩日期 visitDate
+           ├── 路线备注 notes
+           └── 路线照片 photos[]
+```
+
+| 概念 | 口径 |
+|------|------|
+| 存储键 | `cityMeta.attractions[]` —— **物理键名仍是 `attractions`**（内含徒步路线），只在其下新增 `visits[]`；IndexedDB / 云端快照 / 资料夹 `info.json` / OSS kind `'attractions'` 全部沿用，不要改名 |
+| 路线字段 | `{id,name,difficulty,distanceKm,elevationGain,maxAltitude,lng,lat,visits[]}` |
+| 经历字段 | `{id,visitDate(YYYY-MM-DD),notes,photos[]}`（照片是城市相册条目的「副本」，`id` 与相册一致） |
+| 难度枚举 | `easy/moderate/hard/extreme/ultimate` = 轻松/适中/困难/挑战/极限；中文只在 UI 层映射 |
+| 坐标 | GCJ-02（DataV/高德口径），**可编辑**（经度 / 纬度两个 number input，`step=0.0001`，lng 限 -180~180、lat 限 -90~90）；越界或非法值由 `toRouteCoord` 置 `null`，输入框回写空串；新建路线默认取所选城市质心（`defaultRouteCoords()`） |
+| 路线数据 | 三个 number input（`min=0`，非法值经 `toRouteNumber()` 归 0），落库在 `meta.attractions[i].*`：**`distanceKm` 里程**（全程水平长度，km，step 0.1）/ **`elevationGain` 爬升**（全程累计**上升**高度，不含下降，m，step 1）/ **`maxAltitude` 最高海拔**（全程最高点海拔，m，step 1）。**三者都是选填** —— `routeMetricsText()` 只对有值字段拼串，全空则不显示指标摘要。**UI**：每个框包在 `.route-metric-field` 里，上方有**常驻小标签** `.route-metric-label`（「里程（km）」/「爬升（m）」/「最高海拔（m）」）、input 带 `title` 说明、行末有一句 `.route-card-hint` 解释三者含义与「路线级共用」 |
+| 时间与次数 | **唯一来源 `getRouteStats(meta)`**：`count` = 路线条数、`visitCount` = 经历次数、`months[]`/`dates[]`/`firstDate`/`latestDate`/`datedCount` 改为**跨全部经历的 `visitDate` 聚合**；新增 `visits[]` = 扁平化的 `{route,visit,routeIndex,visitIndex}`；`formatRouteTimeSummary()` 输出「N 条路线 · 时间范围」 |
+| 旧数据迁移 | `normalizeRoute()` 内**幂等**折叠：旧的平铺 `visitDate`/`notes`/`photos` → 一条 `visits[0]`（照片保持同一引用），随后 `delete` 旧字段；已有 `visits[]` 时不再重复折叠 |
+| 兼容读取 | `routeVisits(route)` 对未归一化的旧形状返回 `[route]`，让聚合逻辑对旧对象也算得对 |
+| 媒体读取 | `routeVisitPhotos(route)` 扁平取出该路线下全部经历的照片；`routeMediaList(routes)` 供云同步批量剥 `dataUrl` / 收 `storagePath` |
+| 公开投影 | `normalizePublicRoutes()` / `publicRoutesOf()` 的 jsonb 形状不变，`visitDate` 取该路线**最近一次经历**的日期 |
+| 家乡出生年月 | `cityMeta.birthMonth`（`YYYY-MM`），与路线完全解耦；老数据由 `normalizeCityMeta()` 从旧 `visitMonth`/`visitMonths[0]` 懒迁移 |
+| 旧字段 | `visitMonth` / `visitMonths` 物理保留在 IndexedDB 但**不再写入**；`getVisitMonths()` 仅作 legacy 读取，已无调用方 |
+| 归一化 | `normalizeVisit()` / `normalizeRoute()` / `normalizeCityMeta()` 在各边界惰性执行（IDB 读/写、云端还原、云端合并、资料夹还原），**就地修改**对象以保持 `cityMetaCache` 与调用方引用一致 |
+
+**「路线数据」为什么是三个框、为什么在路线层（易误解点，务必记牢）**
+
+- **三个框 = 三个互相独立、不可互推的量**：里程（水平长度）、爬升（累计上升）、最高海拔（最高点）。同为 20 km 的路线，爬升可以是 50 m 也可以是 1500 m；最高点 1200 m 的山，从 400 m 起步爬 800 m、从 1100 m 起步只爬 100 m。难度 `difficulty` 是**定性**档位，这三个是**定量**刻度，互为补充 —— 这是越野/徒步的通用三指标。
+- **归属「路线」层，不在「经历」层**：路线是地理实体，经历是这条路径的一次经过。虎丘山径的里程/爬升/最高海拔是**路径属性**，走 N 次都不变；变的只有日期 / 备注 / 照片。→ **同一路线下的多条经历共享同一套这三个数值**。
+- **三个框只出现在城市弹窗的路线卡上**（`renderAttractions()`，index.html:15305-15317），排在「路线名称 / 线路难度」之后、「坐标」之前。**经历浮层 `#attEditOverlay` 里没有它们** —— 浮层只有游玩日期 / 路线备注 / 路线照片三项（`openVisitEditor()` → `fillVisitEditor()`）。
+- **只能手填**：项目未接 GPS / GPX / 高德轨迹自动计算；坐标同样手填（新建路线默认取所选城市质心）。若将来要做自动计算，属于独立需求。
+- **消费点**：`routeMetricsText()` → 路线卡头 `.route-card-metrics`、城市详情页 `.route-metrics`；公开投影 `normalizePublicRoutes()` 的 6 字段也带这三个。**顶层城市卡内另走 `routeDistanceGainText()`**（只取爬升 + 距离，不含最高海拔）——`routeMetricsText()` 的三段口径在这两处**必须保持不变**。
+
+外部消费点（城市卡片、旅程档案、旅行轨迹、公开点评/主页、照片流）一律改调 `getRouteStats()`；旅程档案的「次数」语义已从「游玩年月条数」变为「徒步路线条数」。
+
+### 编辑面：城市弹窗（路线级） + 经历浮层（经历级）
+
+两个编辑面分工明确，**城市编辑弹窗的原有结构保持不变**：
+
+| 编辑面 | 内容 | 载体 |
+|---|---|---|
+| 城市编辑弹窗 `#modalOverlay` | 原结构全部保留（城市封面 / 推荐指数 / 城市简介 / 家乡出生年月 / 相册管理 / 标签管理 / 徒步路线）；「徒步路线」区块内每条路线一张 `.route-card`，**就地行内编辑** 7 个路线级字段（名称 / 难度 / 里程 / 爬升 / 最高海拔 / 经度 / 纬度），`change` 即存 | `renderAttractions()` + `saveRouteField()` |
+| 经历编辑浮层 `#attEditOverlay` | **只剩三项**：游玩日期 / 路线备注 / 路线照片 | 静态表单 + `openVisitEditor()` |
+
+| 项 | 口径 |
+|------|------|
+| 浮层结构 | 表单写死在 `index.html`（`#attEditOverlay` 内），字段 id 固定：`routeEditorTitle` / `routeEditorClose` / `routeDateInput` / `routeNotesInput` / `routeEditorThumbs` / `routeUploadBtn` / `routePhotoInput`（隐藏的 file input）。路线级的 7 个 id（`routeNameInput` / `routeDifficultySelect` / `routeDistanceInput` / `routeElevationInput` / `routeAltitudeInput` / `routeLngInput` / `routeLatInput`）**已从浮层移除** |
+| 职责拆分 | `openVisitEditor(cityKey,idx,visitIdx,anchor)` 只做「读数据 → `fillVisitEditor()` 填值 → `renderRouteEditorPhotos()` 画缩略图 → 显示浮层」；`onVisitFieldChange(field)` 负责单字段「读 DOM → `saveVisitField()` 落盘 → 回写归一化结果」；`bindRouteEditorEvents()` **只在初始化时调用一次**，避免重复打开叠加监听 |
+| 路线卡 | `renderAttractions()` 渲染 `.route-card[data-route-idx]`：路线名称 input / 难度下拉（选项由 `ROUTE_DIFFICULTIES` 生成）/ 三个指标 number input（**各带常驻小标签 + `title` 说明 + 行末解释文案**）/ 经纬度两个 number input / 难度徽章 / 指标 / 坐标提示 / 经历列表（日期 · 备注 · 媒体徽章 · 编辑 · 删除）/ `[+ 添加徒步经历]` / `[删除路线]`；保存后**只更新受影响的显示节点**，不整表重绘（避免其它未失焦输入框被清空） |
+| 增删 | `addRouteToCity(city)` 新建路线（坐标预填城市质心）；`addVisit(routeIdx)` / `deleteVisit(routeIdx,visitIdx)` / `deleteAttraction(idx)` |
+| 照片区 | 缩略图由 JS 插到**静态**上传按钮之前（`insertBefore(t, routeUploadBtn)`），上传/删除/换序后只重绘缩略图，不再重建整个面板 |
+| 配色 | 全部走项目变量：`var(--card)` / `var(--line)` / `var(--line-2)` / `var(--ink)` / `var(--muted)` / `var(--accent)` / `var(--radius)` / `var(--radius-sm)` / `var(--shadow)`；浅色主题另加 `body.light-theme .route-card-input{background:#ffffff}` 与 `.route-card-visits{background:rgba(0,0,0,.015)}`；`.route-card-input option{background:var(--card);color:var(--ink)}` 保证深色主题下拉可读 |
+| 未跟随主题的部分 | 反馈弹窗 `.feedback-*`、账号弹窗 `.auth-*/.account-*` 仍是硬编码深色；城市详情页 `.att-detail-*` 是刻意保持深色的沉浸式照片页 |
+| 护栏 | `tests/route-editor-static.spec.cjs`（19 项）：静态 id 齐全、路线级 id 已移除、浮层只剩三项、`openVisitEditor` 不再建表单、事件只有一个绑定点、配色变量化、难度选项与常量一致，并用极简 DOM 桩跑通填值/回写/照片区逻辑 |
+
+### 列表口径（城市名弱化标签 + 卡内两行制路线行）
+
+顶层「已点亮城市」列表按**城市**组织：**一个城市一张卡**（列表视图 + 网格视图都是），卡内是**只读的两行制徒步路线列表**。
+
+| 位置 | 主 | 次 |
+|---|---|---|
+| 顶层列表卡 | **城市名弱化标签** `.city-card-name`（13px / 600 / `var(--muted)` / 无发光，2026-10-30 起） | 无副标题、无右上角时间范围（`.city-card-sub` / `.city-card-date` 已彻底删除） |
+| 顶层网格卡 | 城市名称 `.grid-card-name`（emoji + 去掉「市」后缀） | `.grid-card-province` = 「📍 省份」 |
+| 城市详情页路线卡 | 路线名称 `.att-card-name` | 城市名称 `.att-card-city` |
+
+卡内路线列表（`.city-card-routes`）插在 `.city-card-head` 与 `.city-card-thumbs` 之间，每行一个 `.city-card-route`（**列向 flex，两行**）：
+
+| 行内元素 | 位置 | 内容 |
+|---|---|---|
+| `.city-card-route-top` | 第一行容器 | 装下名称 + 日期·次数 |
+| `.city-card-route-name` | 第一行 · 左 | 路线名称（无名称时回退「路线 N」）；`flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis` → 长名省略号截断，不挤掉日期 |
+| `.city-card-route-time` | 第一行 · 右 | **最近一次徒步日期 · 次数**（`getRouteStats().latestDate` + `visitCount`；无日期显示「未记录日期」，无经历则「未记录日期 · 0 次」）；`flex:0 0 auto` 不被挤压 |
+| `.city-card-route-meta` | 第二行 | **爬升 · 距离**（`routeDistanceGainText()`，两段，**不含最高海拔**）。**两项都缺 → 该 span 根本不创建 → 整行不渲染，不留空行/空位**（2026-10-30 起） |
+
+- **2026-10-30 起卡内路线行改两行制**：第一行 = 名称 + 日期·次数，第二行 = 爬升 · 距离。**次数始终跟时间**（`2026-05-02 · 2 次`），第二行不含次数。
+- **难度徽章、坐标、最高海拔已从卡内移除** —— 但难度徽章在**省份地图卡**（`.province-map-card-badge`）、城市详情页、路线编辑器里仍然显示；坐标与最高海拔在**城市详情页 / 路线编辑器 / 城市弹窗路线卡**里仍然显示。
+- **「最近一次徒步日期」取 `getRouteStats().latestDate`**（不是 `latestVisitDate()`）：前者带 `^(\d{4})-(\d{2})-(\d{2})` + 月日范围校验，脏数据（`2026-13-45` / `not-a-date`）会被丢弃，不会顶掉真实日期。
+- **行是只读的**：不绑自己的 click，点击冒泡到卡片 → `focusCityOnMap()` + `openCityModal()`（与 v3.2「一条路线一张卡」时代的交互一致）。
+- 最多显示 5 条，超出追加 `.city-card-route-more` = 「+N 条路线」。
+- **禁止复用** `.route-metrics` / `.route-coord`（那是 `rgba(255,255,255,.62/.42)` 白字，为深色沉浸详情页设计）；卡内用新类 `.city-card-route-meta` / `.city-card-route-time`（`var(--muted)`），否则浅色主题下 `var(--card)` 白底白字看不见。
+- `.city-card-routes` 已加入 z-index 白名单（`.city-card>.city-card-head,.city-card>.city-card-routes,…`），否则被 `.meteors-layer` 盖住。
+- 排序按**城市**最新经历月份倒序，无月份的按照片 `order` 倒序排最后。
+
+### 省份地图卡片：点击省份 → 每条徒步经历一张卡（2026-10-29）
+
+点击具体省份时，地图上不再「一个城市一张卡」，而是**该省每一条徒步经历一张卡**；城市视图（未选省份）保持「一城一卡」不变。
+
+| 项 | 口径 |
+|---|---|
+| 粒度 | **每条徒步经历一张卡**（不是每条路线一张）。江苏省 2 路线 3 经历 → 3 张卡 |
+| 卡片内容 | 路线名称 `.province-map-card-name` + 难度徽章 `.province-map-card-badge`（`routeDifficultyBadge()`，难度为空则不渲染徽章容器）+ 时间 `.province-map-card-date`；封面取**该经历自己的第一张照片**（`visitCoverOf()`：优先 `kind!=='video'` 的图片，只有视频时回落视频封面 JPEG，无照片 → 「无封面」占位） |
+| 连线锚点 | **路线自己的坐标** `route.lng/lat`（`visitAnchorOf()`）；未填写坐标时回落到城市质心 `city.value` |
+| 点击行为 | 经历卡 → `openAttractionDetail(city, routeIdx)` 打开城市详情页并滚动定位到该条路线；城市卡仍 → `openCityModal(city)` |
+| 候选城市 | 省份分支**不再要求 `citiesWithPhotos`**（那是相册照片闸门，会漏掉「有路线但相册无照片」的城市）；该省**一条经历都没有**时才回退为城市卡 |
+| 数量上限 | **不限**，全部铺出。底部「另有 N 个…」胶囊（`.province-focus-more` / `#provinceFocusMore`）已彻底删除 |
+| 排序 | 时间倒序；没记日期的排最后；同日期按城市相册照片数倒序 |
+
+**卡片条目统一形状**（`provinceFocusCities` 的元素）：
+
+```js
+{kind:'city'|'visit', city, key, anchor:[lng,lat], cover, name, difficulty, date,
+ rating, tags, route, visit, routeIdx, visitIdx}
+```
+
+| 字段 | 口径 |
+|---|---|
+| `key` | 城市卡 = `city.cityKey`（历史图钉/位置缓存继续生效）；经历卡 = `cityKey + '#' + 路线下标 + '#' + 经历下标`。**用下标而非 `route.id`/`visit.id`** —— 旧数据每次加载都会重新生成 id，下标才跨会话稳定 |
+| `anchor` | 城市卡 = 城市质心；经历卡 = 路线坐标（缺则回落城市质心） |
+
+**key 化配对（本次重构核心）**：卡片与条目**一律按 `card.dataset.cardKey` 查表配对**，不再按数组下标。原因：经历卡按时间倒序后条目顺序会变，下标配对会把 `cards[0]` 的缓存位置静默转配给别的条目。涉及 6 处：`updateProvinceCardLines()` / `panFollowCards()` / `resolveProvinceCardOverlaps()` / `layoutProvinceFocusCards()` / `commitCityCardRoamTransform()` / `renderProvinceFocusCards()`。
+
+| 配套改动 | 说明 |
+|---|---|
+| `provinceFocusLastPoints` | 数组 → **Map\<key,{x,y}\>**（平移检测基线按下标配对同样会算错卡片） |
+| 连线属性 | SVG path 的 `data-city` → **`data-card-key`**（同一城市的多条经历卡共用 cityKey，按 cityKey 查会更新到错误的线） |
+| `attachProvinceCardDrag(card, item)` | 第二参数由 `city` 改为**条目**：`city.value` → `item.anchor`（否则拖拽时连线画回城市质心），`cardPins[city.cityKey]` → `cardPins[item.key]` |
+| localStorage 键 | `travelCardPinsV3` / `travelCardPosCacheV3` → **V4**（旧的城市级图钉不与新的复合键串味） |
+| 同锚点错开 | 同一路线的多条经历共用一个锚点 → 候选半径按组内序号递增（`r + groupOrd*14`）并交替弯向，否则多条连线完全重叠成一条射线 |
+| 入场动画 | `animationDelay = Math.min(index,8)*45 + 'ms'`（否则 30 张卡会出现 1.3 秒的波浪式入场） |
+| 详情页定位 | `renderAttractionDetailList()` 给 `.att-card` 加 `data-route-index`；`openAttractionDetail(city, focusRouteIdx)` 渲染后 `scrollIntoView({block:'center'})` |
+| CSS | 新增 `.province-map-card--visit` 修饰类（路线名 / 徽章 / 时间 三行叠放，尺寸沿用基础卡的 154×70）；**基础 `.province-map-card` 未改动** —— 足迹到站卡 `fpShowCityCard` 复用同一套类名 |
+| 护栏 | `tests/province-visit-cards.spec.cjs`（20 项）：一经历一卡、key 唯一、封面取本经历首图、视频不抢占首图、三行内容、锚点回落、排序、点击分流、key 化配对、V4 缓存键、同锚点错开、胶囊已删、基础类未污染、详情页定位、足迹卡互斥 |
+
+### 城市弹窗里的经历小图 + 相册实时同步
+
+| 项 | 口径 |
+|---|---|
+| 经历缩略图 | `renderRouteVisits()` 在每条经历行尾追加 `.route-card-visit-thumbs`：**最多 4 张** `.route-card-visit-thumb`，超出显示 `.route-card-visit-thumb-more` = 「+N」。计数文字 `.route-card-visit-media`（「N张照片 · M个视频」）**保留** |
+| 点击行为 | 缩略图 → `openPhotoViewer(photos, pi)`，`pi` 是**原数组下标**（预览范围 = 该条经历的全部照片，含未显示的第 5 张）；`+N` → `openPhotoViewer(photos, 0)`；两者都 `e.stopPropagation()` |
+| 视频 | 视频副本的 `dataUrl` 是封面 JPEG，可直接 `<img>`；缩略图带 `.route-card-visit-thumb-play` 播放角标 |
+| 布局 | 缩略图区 `flex:1 1 100%` → `.route-card-visit` 的 `flex-wrap` 把它换到独立一行，**编辑/删除按钮仍留在日期行** |
+| 上传同步 | `routeUploadPhotos()` 末尾：`currentCity.cityKey===ctx.cityKey` 时 `await loadCityPhotos(ctx.cityKey)`（重画 `#thumbsGrid` 相册网格）+ `await refreshState()`（顶层卡片缩略图与统计）。**城市不匹配时不刷新别人的相册** |
+| 删除同步 | `routeDeletePhoto()` 先取出 `target` 再 `splice`，再 `await deleteRoutePhotoFromAlbum(ctx.cityKey, target)` 删掉城市相册里的同一条 |
+| 三级匹配 | `deleteRoutePhotoFromAlbum()`：**id 优先** → `storagePath` → `dataUrl`。本地上传两侧共享 `addPhoto` 自增 id；云端恢复的副本只有 `storagePath`；历史数据只有 `dataUrl`。id 优先是刻意的，避免重复上传同一张图时删错条目 |
+| 反向同步 | 相册侧删除（`onDeletePhoto()`）仍按 `dataUrl`/`storagePath` 清理经历副本，两侧保持一致 |
+| 不在范围 | `routeSwapPhotos()` 的拖拽换序**不同步**相册 `order`（用户已确认本轮不做） |
+
+### 后端存储与三层结构的适配口径（2026-10-29 核查结论）
+
+三层结构是**纯前端概念**，后端两个文件都**不需要改**。
+
+| 项 | 结论 |
+|---|---|
+| `supabase-setup.sql` | **无需修改**。新结构写入的仍是三列**无约束 jsonb**（无 CHECK / trigger / plpgsql 函数；RLS 谓词只判 `auth.uid()` / `is_public`）：`travel_snapshots.data`（完整三层）、`city_reviews.attractions` + `public_profiles.attractions`（公开投影） |
+| 公开投影 | `normalizePublicRoutes()` 产出**固定 6 字段** `{name,difficulty,distanceKm,elevationGain,maxAltitude,visitDate}`，与三层结构之前**形状完全相同**；`visits[]`（坐标 / 备注 / 照片）**故意不外传**，在这一步被丢掉 |
+| `city_reviews.visit_month` | 值 = `getRouteStats(meta).latestMonth`（城市下最近一条徒步路线的经历月份），列名与语义都不变 |
+| `oss-media/index.ts` | **无需修改**。它是**路径无关**的 OSS 签名代理（鉴权 → `ownsPath()` → 签 300s PUT/GET URL）；object key 是**扁平**的 `users/<uid>/<kind>/<cloudId>.<ext>`，**不含 cityKey / routeId / visitId** → 嵌套变深不改变寻址参数（key ≈ 90 字符 ≪ `ownsPath` 的 1024 上限） |
+| 前端上传链路 | 已适配三层：`routeMediaList()` → `routeVisitPhotos()` → `routeVisits()` **已递归到 `visit.photos[]`**；经历副本与相册主条目的 `dataUrl` **字面相同** → `photoPathByDataUrl` 命中 → **复用同一个 OSS 对象**，不重复上传；快照里 `photos[].dataUrl`(base64) 被剥掉，只留 `cloudId`/`storagePath` |
+| 已知遗留 | `action:'delete'` 是**死代码**（前端只调 `action:'put'` / `action:'get'`）→ 删掉的照片其 OSS 对象永不清理，产生**孤儿对象**。要修需单独立项（补前端删除调用 + 批量分片） |
+| 已知遗留 | **视频本体永不上云**：`importLocalVideo` 仅本机模式（blob 存 IndexedDB），`buildCloudSnapshot` 剔除 `kind==='video'` → 云端只有封面 JPEG。故 `travel-media` 桶的 image-only `allowed_mime_types` 不构成阻塞 |
+
 ### 权限模型
 
 任何人可以注册登录，但只能管理自己的数据。前端请求路径为 `users/<user.id>/...`；Edge Function 先用 Supabase `auth.getUser(token)` 验证用户，再用 `ownsPath()` 校验路径。OSS 保持私有，浏览器只使用 300 秒有效的 PUT/GET 签名 URL。不要把 OSS 设置为公共读写。
@@ -81,7 +240,7 @@ Supabase Project Ref: zpqbbawremufcxxszgde
 Edge Function: oss-media
 OSS Bucket: your-china-travel-8877-hk
 OSS ACL: 私有
-正式 Origin: https://zwxll.github.io
+正式 Origin: https://pdsmile.github.io/  与  https://pdsmile.github.io//china-travel/
 本地 Origin: http://127.0.0.1:8765
 ```
 
@@ -206,7 +365,7 @@ f:\trae\1\Your-China-Travel\
 | 2968-3002 | 搜索框 + 城市网格 | `#cityGrid` 已点亮城市卡片列表 |
 | 3007-3037 | 地图加载器/错误提示 | `#mapLoader`、`#mapError` |
 | **3147-3188** | **`#attDetailOverlay`** | **城市详情页（本次会话重点修改区）** |
-| 3190-3197 | `#attEditOverlay` | 景点编辑面板 |
+| 3190-3197 | `#attEditOverlay` | 徒步**经历**编辑浮层（游玩日期 / 路线备注 / 路线照片） |
 | 3198-3240 | 外部脚本引入 | china-geo、ECharts、globe.gl、GSAP |
 | 3242-3661 | 主逻辑 JS | 数据层、地图、交互、动画 |
 
@@ -215,15 +374,15 @@ f:\trae\1\Your-China-Travel\
 | 功能模块 | 关键函数/变量 | 说明 |
 |----------|--------------|------|
 | 数据层 | `IndexedDB`（TravelPhotosDB）| 照片存储，`cityMeta` 仓库存城市元数据 |
-| 城市元数据 | `getCityMeta()`/`setCityMeta()`/`cityMetaCache` | 字段：`coverImage`、`description`、`visitMonth`(YYYY-MM)、`rating`(0-5)、`attractions[]` |
-| 景点数据 | `attractions[].{id,name,photos[],notes,visitDate(YYYY-MM-DD)}` | 每个景点含照片数组、备注、游玩日期 |
+| 城市元数据 | `getCityMeta()`/`setCityMeta()`/`cityMetaCache` | 字段：`coverImage`、`description`、`birthMonth`(YYYY-MM，家乡出生年月)、`rating`(0-5)、`attractions[]`（徒步路线） |
+| 徒步路线数据 | `attractions[].{id,name,difficulty,distanceKm,elevationGain,maxAltitude,lng,lat,visits[]}`，`visits[].{id,visitDate(YYYY-MM-DD),notes,photos[]}` | 物理键名仍是 `attractions`；难度取 easy/moderate/hard/extreme/ultimate，坐标为 GCJ-02 且**可编辑**，未填为 null |
 | 地图渲染 | `myChart`(ECharts实例)、`updateScatterData()` | 散点图叠加地图，已点亮城市高亮 |
 | 地图交互 | `myChart.on('click'/'dblclick')` | 单击→城市弹窗；双击已点亮→详情页 |
 | 状态刷新 | `refreshState()` | 遍历照片统计 `photoCountByCity`、`totalAttractionCount` |
-| 详情页 | `openAttractionDetail(city)` | 加载城市 meta，渲染封面/简介/景点网格 |
-| 景点渲染 | `renderAttractionDetailList(attractions)` | 生成卡片，绑定单击编辑/双击轮播 |
+| 详情页 | `openAttractionDetail(city)` | 加载城市 meta，渲染封面/简介/徒步路线网格 |
+| 路线渲染 | `renderAttractionDetailList(attractions)` | 生成路线卡片（主=路线名称/次=城市名称、难度徽章/里程/坐标/经历列表），卡内经历行「编辑」→ 经历浮层 |
 | 照片查看器 | `openPhotoViewer(photos,idx,loop,opts)` | 1.1倍旋转木马，虚化封面背景 |
-| 城市弹窗 | `openCityModal(cityData)` | 城市编辑（简介、星级、年月、景点增删） |
+| 城市弹窗 | `openCityModal(cityData)` | 城市编辑（简介、星级、徒步路线卡行内编辑 + 经历增删；家乡额外有出生年月） |
 
 ---
 
@@ -244,9 +403,9 @@ f:\trae\1\Your-China-Travel\
     ├── .att-desc-wrap #attDescWrap       ← 城市简介（透明无背景边框）
     │   └── .att-detail-desc #attDetailDesc
     ├── .att-info-bar #attInfoBar         ← 数据信息栏（玻璃面板，横向4项）
-    │   ├── 游玩年月 / 推荐星级 / 景点总数 / 相册影像
+    │   ├── 徒步路线时间 / 推荐星级 / 路线总数 / 相册影像
     ├── .att-grid-title（隐藏占位）
-    └── .att-grid #attDetailBody          ← 景点网格卡片（无外层包装）
+    └── .att-grid #attDetailBody          ← 徒步路线网格卡片（无外层包装）
 ```
 
 ---
@@ -463,15 +622,15 @@ npx http-server -p 8765
 ### 11.1 本地资料文件夹与媒体同步
 
 - 本机模式支持选择资料文件夹、自动同步、从文件夹恢复，以及导出资料文件夹。
-- 资料结构包含 `profile.json`、`index.json`、城市目录、`photos/`、`videos/` 和 `景点/`；视频同时保存原文件和封面图。
-- 使用 IndexedDB `TravelPhotosDB` 保存文件夹句柄、照片 Blob、视频 Blob 与城市/景点元数据；浏览器更换后需要重新选择或从已有资料文件夹恢复。
+- 资料结构包含 `profile.json`、`index.json`、城市目录、`photos/`、`videos/` 和 `徒步路线/`（旧存档的 `景点/` 目录仍可读取）；视频同时保存原文件和封面图。
+- 使用 IndexedDB `TravelPhotosDB` 保存文件夹句柄、照片 Blob、视频 Blob 与城市/徒步路线元数据；浏览器更换后需要重新选择或从已有资料文件夹恢复。
 - 视频仍限制在“本机模式 + 资料文件夹”，云端快照只同步照片元数据/封面，不上传本地视频原文件。
 
 ### 11.2 相册、视频与查看器
 
 - 城市详情中的“相册管理”支持照片/视频分类、视频上传、视频封面、视频播放器和“查看全部相册”。
-- 景点卡片单击查看媒体，右上角“编辑景点”进入编辑；景点视频会同步进入城市媒体库。
-- 景点旋转木马和城市堆叠相册均支持“照片 / 视频”切换；视频弹窗支持上一条/下一条、键盘方向键、全屏、下载和“查看全部视频”缩略条。
+- 路线卡片单击查看媒体，右上角“编辑路线”进入编辑；路线视频会同步进入城市媒体库。
+- 路线旋转木马和城市堆叠相册均支持“照片 / 视频”切换；视频弹窗支持上一条/下一条、键盘方向键、全屏、下载和“查看全部视频”缩略条。
 - 图片查看器支持横向浏览与照片墙模式；照片墙中的视频使用封面和播放标记，点击进入视频播放器。
 
 ### 11.3 旅行轨迹与记忆书架
@@ -483,7 +642,7 @@ npx http-server -p 8765
 ### 11.4 验证与接手注意
 
 - 回归命令：`node tests/local-folder.spec.cjs`。
-- 当前回归测试覆盖本机资料夹导出/恢复、视频 Blob 和封面、景点视频归档、云模式限制、相册标签、单击景点查看、照片墙以及最新查看器/地球/书脊/翻页源代码回归检查。
+- 当前回归测试覆盖本机资料夹导出/恢复、视频 Blob 和封面、路线视频归档、云模式限制、相册标签、单击路线查看、徒步路线数据层与迁移（`tests/route-stats.spec.cjs`）、路线/经历编辑面（`tests/route-editor-static.spec.cjs`）、资料夹往返（`tests/folder-media-roundtrip.spec.cjs`）、路线卡片媒体计数（`tests/attraction-media-count.spec.cjs`）、照片墙以及最新查看器/地球/书脊/翻页源代码回归检查。
 - 修改集中在单文件 `index.html`；无构建步骤。启动本地页面建议使用 HTTP 服务，不要直接依赖 `file://` 验证 IndexedDB、Blob 和媒体播放。
 - 当前未创建提交，也未推送 GitHub；提交前应检查 `git diff --check`、运行回归测试，并在浏览器实际检查视频弹窗和记忆书架翻页中间帧。
 

@@ -6,8 +6,10 @@ const points=[{cityKey:'home',name:'家乡',value:[100,100],adcode:'360000'},
   {cityKey:'a',name:'城市甲',value:[250,180],adcode:'330000'},
   {cityKey:'b',name:'城市乙',value:[180,300],adcode:'410000'},
   {cityKey:'unknown',name:'未记日期',value:[80,250],adcode:'420000'}];
-const metas={home:{},a:{visitMonth:year+'-08',visitMonths:['2023-05',year+'-08',year+'-09']},
-  b:{visitMonth:'2023-06',visitMonths:['2023-06'],attractions:[{visitDate:year+'-07-02'}]},unknown:{}};
+const metas={home:{},
+  a:{attractions:[{name:'路线一',visits:[{visitDate:'2023-05-18'}]},{name:'路线二',visits:[{visitDate:year+'-08-08'}]},{name:'路线三',visits:[{visitDate:year+'-09-09'}]}]},
+  b:{attractions:[{name:'路线四',visits:[{visitDate:'2023-06-15'}]},{name:'路线五',visits:[{visitDate:year+'-07-02'}]}]},
+  unknown:{}};
 metas.a.coverImage='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>';
 
 test('年份轨迹从家乡分别连线，跨年去重、全部及城市原回放可切换，手机不溢出',async()=>{
@@ -27,7 +29,8 @@ test('年份轨迹从家乡分别连线，跨年去重、全部及城市原回�
       ['launch-screen','mapLoader'].forEach(id=>document.getElementById(id)?.remove());
       document.getElementById('mapWrap').style.height='700px';
     },{points,metas});
-    const dateStart=source.indexOf('  function getVisitMonths('),dateEnd=source.indexOf('  async function getCityMeta(',dateStart);
+    // 徒步路线数据层（难度枚举 / 归一化 / getRouteStats 时间次数聚合）
+    const dateStart=source.indexOf('  const ROUTE_DIFFICULTIES='),dateEnd=source.indexOf('  async function getCityMeta(',dateStart);
     const collectStart=source.indexOf('  async function collectTimelineCities('),collectEnd=source.indexOf('  const FOOTPRINT_HOME_KEY=',collectStart);
     const start=collectEnd,end=source.indexOf('  // 年月格式化：',start);
     const mapFunctions=['updateScatterData','applyProvinceRegionStyles','updateVisitedBorderLayer'].map(name=>{
@@ -128,15 +131,15 @@ test('年份轨迹从家乡分别连线，跨年去重、全部及城市原回�
     assert.equal(await lines.count(),3,'未记日期城市只进入全部');
     await page.locator('#fpCityModeBtn').click();
     assert.equal(await lines.count(),0);
-    assert.deepEqual(await page.evaluate(()=>window.fpTest.cityState().route.map(c=>c.cityKey)),['home','b','a','unknown']);
+    assert.deepEqual(await page.evaluate(()=>window.fpTest.cityState().route.map(c=>c.cityKey)),['home','a','b','unknown'],'城市顺序按徒步路线的最早月份，而不是旧的游玩年月字段');
     await page.locator('#fpPlayBtn').click();
     assert.equal(await page.evaluate(()=>window.fpTest.cityState().playing),false,'保留原暂停控制');
     assert.equal(await page.evaluate(()=>window.fpTest.map().geo[3].show),false,'城市模式未到站时底图无旧高亮');
     await page.evaluate(()=>window.fpTest.arrive(performance.now()));
-    assert.deepEqual(await page.evaluate(()=>window.fpTest.map().geo[3].regions.map(r=>r.name)),['410000']);
+    assert.deepEqual(await page.evaluate(()=>window.fpTest.map().geo[3].regions.map(r=>r.name)),['330000']);
     assert.equal(await page.locator('#fpMemoryCard').isVisible(),true,'到站照片卡片仍保留');
-    assert.equal(await page.locator('.fp-city-name').filter({hasText:'城市乙'}).isVisible(),true,'按城市到站后也显示地图城市名称');
-    assert.equal(await page.locator('.fp-city-name').filter({hasText:'城市甲'}).count(),0);
+    assert.equal(await page.locator('.fp-city-name').filter({hasText:'城市甲'}).isVisible(),true,'按城市到站后也显示地图城市名称');
+    assert.equal(await page.locator('.fp-city-name').filter({hasText:'城市乙'}).count(),0);
     await page.locator('#fpYearModeBtn').click();
     assert.equal(await page.evaluate(()=>window.fpTest.yearState().year),'2023');
     await page.setViewportSize({width:390,height:844});
@@ -155,7 +158,8 @@ test('年份轨迹从家乡分别连线，跨年去重、全部及城市原回�
     assert.deepEqual(await page.evaluate(()=>window.fpTest.map().series.map(s=>s.data.length)),[0,4,4,1],'退出恢复已到访城市和家乡');
     assert.deepEqual(await page.evaluate(()=>window.fpTest.map().geo[3].regions.map(r=>r.name)),['360000','330000','410000','420000']);
     await page.evaluate(async()=>{
-      window.testMetas.a={visitMonths:['2024-05']};window.testMetas.b={visitMonths:['2023-06']};
+      window.testMetas.a={attractions:[{name:'路线甲',visits:[{visitDate:'2024-05-18'}]}]};
+      window.testMetas.b={attractions:[{name:'路线乙',visits:[{visitDate:'2023-06-15'}]}]};
       await window.fpTest.start();
     });
     assert.equal(await page.locator('#fpYearStrip button[aria-pressed="true"]').textContent(),'2023','没有今年记录也从最早年份播放');

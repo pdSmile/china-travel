@@ -9,7 +9,7 @@ const badgeStart=html.indexOf('  function attractionMediaBadgeHtml(items){');
 const badgeEnd=html.indexOf('\n  function ',badgeStart+3);
 
 assert.ok(countStart>=0&&countEnd>countStart,'应保留统一的媒体计数函数');
-assert.ok(badgeStart>=0&&badgeEnd>badgeStart,'应提供景点卡片媒体计数渲染函数');
+assert.ok(badgeStart>=0&&badgeEnd>badgeStart,'应提供路线卡片媒体计数渲染函数');
 
 const createBadge=new Function(
   html.slice(countStart,countEnd)+html.slice(badgeStart,badgeEnd)+'return attractionMediaBadgeHtml;'
@@ -29,5 +29,6 @@ const empty=createBadge([]);
 assert.match(empty,/aria-label="0 张照片"/,'无照片时仍明确显示 0');
 assert.match(empty,/aria-label="0 个视频"/,'无视频时仍明确显示 0');
 
-assert.match(html,/pcount\.innerHTML=attractionMediaBadgeHtml\(att\.photos\|\|\[\]\)/,'景点卡片应使用分类后的媒体计数');
-console.log('PASS: 景点卡片分别显示照片与视频图标和数量');
+assert.match(html,/const photos=routeVisitPhotos\(att\)/,'路线卡片应取该路线下全部经历的照片');
+assert.match(html,/pcount\.innerHTML=attractionMediaBadgeHtml\(photos\)/,'路线卡片应使用分类后的媒体计数');
+console.log('PASS: 路线卡片分别显示照片与视频图标和数量');
