@@ -22,7 +22,7 @@ function load(homeCityKey){
   return new Function(...Object.keys(deps),modelBlock+statsBlock+
     ';return {ROUTE_DIFFICULTIES,normalizeVisit,normalizeRoute,normalizeCityMeta,getRouteStats,'+
     'formatRouteTimeSummary,formatRouteTimeRange,normalizePublicRoutes,publicRoutesOf,'+
-    'defaultRouteCoords,toRouteNumber,toRouteCoord,routeVisits,latestVisitDate,'+
+    'defaultRouteCoords,toRouteNumber,toRouteCoord,toRouteRating,routeVisits,latestVisitDate,'+
     'routeVisitPhotos,routeMediaList};')(...Object.values(deps));
 }
 
@@ -120,6 +120,7 @@ test('normalizeRoute 补齐难度/里程/爬升/海拔/坐标',()=>{
   assert.equal(route.maxAltitude,0);
   assert.equal(route.lng,null);
   assert.equal(route.lat,null);
+  assert.equal(route.rating,0,'推荐指数缺省为 0（未打分）');
   // 路线级不再承载日期/备注/照片（已下沉到 visits[]）
   assert.deepEqual(route.visits,[]);
   assert.equal(route.notes,undefined);
@@ -313,6 +314,19 @@ test('坐标归一在越界时返回 null，0 坐标保留',()=>{
   assert.equal(toRouteCoord('-91',-90,90),null);
   assert.equal(toRouteCoord('0',-180,180),0);
   assert.equal(toRouteCoord('120.5712',-180,180),120.5712);
+});
+
+test('推荐指数归一到 0-5 的整数',()=>{
+  const {toRouteRating}=load();
+  assert.equal(toRouteRating(3),3);
+  assert.equal(toRouteRating('4'),4);
+  assert.equal(toRouteRating(9),5,'超出上限截断到 5');
+  assert.equal(toRouteRating(-2),0,'低于下限截断到 0');
+  assert.equal(toRouteRating('abc'),0,'非法值退回 0');
+  assert.equal(toRouteRating(4.6),5,'小数四舍五入');
+  assert.equal(toRouteRating(''),0);
+  assert.equal(toRouteRating(null),0);
+  assert.equal(toRouteRating(undefined),0);
 });
 
 test('新建路线预填城市质心坐标（保留四位小数）',()=>{

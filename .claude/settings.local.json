@@ -59,7 +59,11 @@
       "Bash(ec=$?)",
       "Bash(while read l)",
       "Bash(do if:*)",
-      "Bash(then echo:*)"
+      "Bash(then echo:*)",
+      "Bash(for f in tests/route-editor-static.spec.cjs tests/route-photo-album-sync.spec.cjs tests/route-stats.spec.cjs tests/province-visit-cards.spec.cjs tests/city-card-route-list.spec.cjs tests/visit-thumb-row.spec.cjs)",
+      "Bash(for f in route-editor-static route-photo-album-sync route-stats province-visit-cards city-card-route-list visit-thumb-row)",
+      "Bash(do grep -q \"node:test\" \"$f\":*)",
+      "Bash(git -C /Users/pengdong/code/china-travel diff index.html)"
     ]
   }
 }

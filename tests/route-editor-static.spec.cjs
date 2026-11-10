@@ -20,8 +20,10 @@ const saveVisitBlock=productionBlock('  // 保存经历级字段（体验浮层�
 const editorBlock=productionBlock('  // 把一条徒步经历填进静态编辑器表单','  // 详情页旧入口 → 打开该路线下的第一条经历（保持调用点兼容）');
 // 城市弹窗里的路线卡渲染（路线级字段就地编辑）
 const routeCardBlock=productionBlock('  function renderAttractions(attractions){','  // 路线卡字段变更：落盘 → 回写归一化结果 → 局部刷新显示');
-// 路线卡的表单构造器（行 / 输入框 / 显示刷新 / 填值）
+// 路线卡的表单构造器（行 / 输入框 / 显示刷新 / 填值 / 编辑态）
 const routeCardHelpersBlock=productionBlock('  // 路线卡的一行（标签 + 控件容器）','  function renderAttractions(attractions){');
+// 「添加徒步路线」（新路线自动进入编辑态）
+const addRouteBlock=productionBlock('  // 添加徒步路线','  // 添加一条徒步经历');
 // 经历浮层静态 HTML
 const overlayHtml=productionBlock('  <!-- 徒步经历编辑浮层','  <!-- Toast -->');
 // CSS
@@ -45,10 +47,25 @@ function matchSel(el,sel){
   return true;
 }
 function walk(node,fn){ fn(node); (node.children||[]).forEach(c=>walk(c,fn)); }
+// 可记录状态的 classList（生产代码会调 classList.toggle('active',on)）
+function makeClassList(){
+  const set=new Set();
+  return {
+    add(...c){ c.forEach(x=>set.add(x)); },
+    remove(...c){ c.forEach(x=>set.delete(x)); },
+    toggle(c,force){
+      const has=set.has(c);
+      const want=(force===undefined)?!has:!!force;
+      if(want) set.add(c); else set.delete(c);
+      return want;
+    },
+    contains(c){ return set.has(c); }
+  };
+}
 function makeEl(tag){
   const el={
     tagName:String(tag).toUpperCase(), className:'', textContent:'', value:'', src:'', type:'',
-    children:[], dataset:{}, attrs:{}, handlers:{},
+    children:[], dataset:{}, attrs:{}, handlers:{}, classList:makeClassList(),
     appendChild(c){ c.parent=this; this.children.push(c); return c; },
     append(...nodes){ nodes.forEach(n=>this.appendChild(n)); },
     insertBefore(c,ref){
@@ -110,30 +127,66 @@ function buildEditor(route){
   return {api,els,meta,calls};
 }
 
-// 渲染城市弹窗里的路线卡（真实生产代码 + DOM 桩）
-function buildRouteCard(routes){
-  const listEl=makeEl('div');
-  const deps={
+// 路线卡的渲染依赖（renderAttractions 用到的外部依赖）
+function routeCardDeps(listEl,meta){
+  return {
     attractionListEl:listEl,
     document:{createElement:tag=>makeEl(tag)},
     currentCity:{cityKey:'320500_苏州市'},
     renderRouteVisits:()=>{},
-    onRouteCardFieldChange:()=>{},
+    // 失焦即存：把改动写回路线对象（生产实现走 saveRouteField）
+    onRouteCardFieldChange:(idx,field,input)=>{
+      const r=meta.attractions[idx];
+      if(r) r[field]=input.value;
+    },
     addVisit:()=>{},
     deleteAttraction:()=>{},
     routeDifficultyBadge:()=>'',
     routeMetricsText:()=>'',
-    routeCoordText:()=>''
+    routeCoordText:()=>'',
+    starSvgHTML:active=>'<svg class="star-svg'+(active?'':' inactive')+'" data-star="'+(active?'1':'0')+'"></svg>',
+    saveRouteField:async(ctx,field,value)=>{
+      const r=meta.attractions[ctx.idx];
+      if(!r) return null;
+      r[field]=value;
+      return meta;
+    }
   };
-  const src=modelBlock+routeCardHelpersBlock+routeCardBlock+'\nreturn renderAttractions;';
-  const render=new Function(...Object.keys(deps),src)(...Object.values(deps));
-  render(routes);
-  return {listEl,render};
+}
+// 渲染城市弹窗里的路线卡（真实生产代码 + DOM 桩）
+function buildRouteCard(routes){
+  const listEl=makeEl('div');
+  const meta={cityKey:'320500_苏州市',attractions:routes};
+  const deps=routeCardDeps(listEl,meta);
+  const src=modelBlock+routeCardHelpersBlock+routeCardBlock+
+    '\nreturn {renderAttractions,onRouteCardRatingClick,setRouteCardEditMode,toggleRouteCardEditMode};';
+  const api=new Function(...Object.keys(deps),src)(...Object.values(deps));
+  api.renderAttractions(routes);
+  return {listEl,api,meta};
+}
+// 跑一次「添加徒步路线」（验证新路线自动进入编辑态）
+async function buildAddAttraction(){
+  const listEl=makeEl('div');
+  const meta={cityKey:'320500_苏州市',attractions:[]};
+  const deps={...routeCardDeps(listEl,meta),
+    addRouteToCity:async()=>{ meta.attractions.push({name:'新路线',visits:[]}); },
+    getCityMeta:async()=>meta,
+    renderCityCards:()=>{}
+  };
+  const src=modelBlock+routeCardHelpersBlock+routeCardBlock+addRouteBlock+
+    '\nreturn {renderAttractions,setRouteCardEditMode,addAttraction};';
+  const api=new Function(...Object.keys(deps),src)(...Object.values(deps));
+  await api.addAttraction();
+  return {listEl,api,meta};
+}
+async function click(el){
+  const ev={stopPropagation(){}};
+  for(const fn of (el.handlers.click||[])) await fn(ev);
 }
 const SAMPLE_ROUTE={
   name:'虎丘山径',difficulty:'moderate',
   distanceKm:8.5,elevationGain:320,maxAltitude:480,
-  lng:120.5712,lat:31.3364,visits:[]
+  lng:120.5712,lat:31.3364,rating:4,visits:[]
 };
 
 // 浮层里必须存在的元素 id
@@ -243,12 +296,16 @@ test('三个指标输入框仍带 data-field，且各自有悬停说明',()=>{
 
 test('路线数据行有一句解释三个指标含义的说明',()=>{
   const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
-  const hints=listEl.querySelectorAll('.route-card-hint');
-  assert.ok(hints.length>=2,'应有路线数据说明 + 坐标说明');
-  const metricHint=hints[0].textContent;
+  // 按行定位说明文案（路线卡里现在有「推荐指数」「路线数据」「坐标」三条说明）
+  const rows=listEl.querySelectorAll('.route-card-row');
+  const metricRow=rows.find(r=>(r.children[0]||{}).textContent==='路线数据');
+  assert.ok(metricRow,'缺少「路线数据」行');
+  const metricHint=metricRow.querySelector('.route-card-hint');
+  assert.ok(metricHint,'路线数据行缺少说明');
   ['里程','爬升','最高海拔','共用'].forEach(word=>{
-    assert.ok(metricHint.includes(word),'路线数据说明里缺少「'+word+'」');
+    assert.ok(metricHint.textContent.includes(word),'路线数据说明里缺少「'+word+'」');
   });
+  assert.ok(listEl.querySelectorAll('.route-card-hint').length>=3,'应有推荐指数 / 路线数据 / 坐标三条说明');
 });
 
 test('填值：三个指标回填到对应输入框（不因加标签而错位）',()=>{
@@ -261,6 +318,203 @@ test('指标小标签样式走项目变量',()=>{
   assert.ok(/\.route-metric-label\{[^}]*color:var\(--muted\)/.test(routeCardCss),'小标签应使用 var(--muted)');
   assert.ok(/\.route-metric-field\{[^}]*display:flex/.test(routeCardCss),'字段容器应为纵向 flex');
   assert.ok(/\.route-metric-field>\.route-card-input\{[^}]*width:100%/.test(routeCardCss),'输入框应填满字段容器宽度');
+});
+
+/* ---------- 路线推荐指数（0-5 星） ---------- */
+
+test('路线卡有「推荐指数」行与 5 颗可点星',()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
+  const rows=listEl.querySelectorAll('.route-card-row');
+  const ratingRow=rows.find(r=>(r.children[0]||{}).textContent==='推荐指数');
+  assert.ok(ratingRow,'缺少「推荐指数」行');
+  const box=ratingRow.querySelector('.route-card-rating');
+  assert.ok(box,'缺少星级容器');
+  const stars=box.querySelectorAll('.star');
+  assert.equal(stars.length,5,'5 颗星');
+  assert.deepEqual(stars.map(s=>s.dataset.val),['1','2','3','4','5']);
+  assert.ok(stars.every(s=>s.title.includes('星')),'每颗星都应有 title 提示');
+});
+
+test('推荐指数按值点亮对应数量的星（rating:4 → 前 4 颗亮）',()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
+  const stars=listEl.querySelectorAll('.route-card-rating').flatMap(b=>b.querySelectorAll('.star'));
+  const on=stars.map(s=>s.classList.contains('active'));
+  assert.deepEqual(on,[true,true,true,true,false]);
+});
+
+test('未打分的路线 0 颗星点亮',()=>{
+  const {listEl}=buildRouteCard([{name:'未打分',visits:[]}]);
+  const stars=listEl.querySelectorAll('.route-card-rating').flatMap(b=>b.querySelectorAll('.star'));
+  assert.equal(stars.length,5);
+  assert.ok(stars.every(s=>!s.classList.contains('active')),'未打分时不应有星点亮');
+});
+
+test('编辑态下点击星星落盘并点亮；再点同一颗清零',async()=>{
+  const route={name:'待打分',visits:[]};
+  const {listEl,meta}=buildRouteCard([route]);
+  const card=listEl.querySelectorAll('.route-card')[0];
+  const box=listEl.querySelector('.route-card-rating');
+  const stars=box.querySelectorAll('.star');
+
+  await click(card.querySelector('.route-card-edit-btn'));   // 先进入编辑态
+  assert.ok(card.classList.contains('editing'),'应进入编辑态');
+
+  await click(stars[3]);   // 第 4 颗
+  assert.equal(route.rating,4,'应写入 4 星');
+  assert.equal(box.dataset.value,'4','容器应同步当前分值');
+  assert.deepEqual(box.querySelectorAll('.star').map(s=>s.classList.contains('active')),
+    [true,true,true,true,false],'前 4 颗应点亮');
+
+  await click(stars[3]);   // 再点同一颗 → 清零
+  assert.equal(route.rating,0,'再次点击同一颗星应清零');
+  assert.equal(box.dataset.value,'0');
+  assert.ok(box.querySelectorAll('.star').every(s=>!s.classList.contains('active')),'清零后不应有星点亮');
+  assert.equal(meta.attractions[0],route,'落盘的是同一条路线');
+});
+
+test('详情页路线卡展示只读星级',()=>{
+  const detailBlock=productionBlock('  function renderAttractionDetailList(attractions){','  // 难度徽章 HTML');
+  assert.ok(detailBlock.includes("ratingEl.className='att-card-rating'"),'详情页缺少只读星级节点');
+  assert.ok(detailBlock.includes('renderStars(routeRating)'),'详情页星级应由 renderStars 渲染');
+  assert.ok(detailBlock.includes('if(routeRating>0)'),'0 星不应显示星级');
+});
+
+test('路线卡星级样式走项目既有 .star-svg 体系',()=>{
+  assert.ok(/\.route-card-rating\{[^}]*display:inline-flex/.test(routeCardCss),'星级容器应为 inline-flex');
+  assert.ok(/\.route-card-rating \.star\{[^}]*cursor:pointer/.test(routeCardCss),'星星应可点');
+  assert.ok(/\.att-card-rating\{[^}]*display:flex/.test(html),'详情页星级容器应为 flex');
+});
+
+/* ---------- 路线卡编辑态：查看态防误输入 ---------- */
+
+test('每张路线卡右上角都有「编辑 / 取消」按钮',()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
+  const cards=listEl.querySelectorAll('.route-card');
+  assert.equal(cards.length,1);
+  const btn=cards[0].querySelector('.route-card-edit-btn');
+  assert.ok(btn,'缺少编辑按钮');
+  assert.equal(btn.textContent,'编辑','默认应是「编辑」');
+  const head=cards[0].querySelector('.route-card-head');
+  assert.equal(head.children[head.children.length-1],btn,'编辑按钮应在头部最后一个位置（右上角）');
+});
+
+test('头部结构：标题 / 徽章 / 指标收在 .route-card-head-main 里',()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
+  const head=listEl.querySelector('.route-card-head');
+  const headMain=head.children[0];
+  assert.equal(headMain.className,'route-card-head-main','头部第一个子节点应是标题区');
+  assert.ok(headMain.querySelector('.route-card-title'),'标题区应含路线名');
+  assert.ok(headMain.querySelector('.route-card-badge'),'标题区应含难度徽章');
+  assert.ok(headMain.querySelector('.route-card-metrics'),'标题区应含指标');
+});
+
+test('查看态：七个路线级控件全部只读',()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
+  const card=listEl.querySelectorAll('.route-card')[0];
+  const inputs=card.querySelectorAll('.route-card-input');
+  assert.equal(inputs.length,7,'名称 / 难度 / 里程 / 爬升 / 最高海拔 / 经度 / 纬度 共 7 个');
+  inputs.forEach(i=>{
+    assert.equal(i.disabled,true,'控件应被禁用：'+(i.dataset.field||''));
+  });
+});
+
+test('点「编辑」→ 控件解锁、按钮变「取消」',async()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
+  const card=listEl.querySelectorAll('.route-card')[0];
+  const btn=card.querySelector('.route-card-edit-btn');
+  await click(btn);
+  assert.ok(card.classList.contains('editing'),'卡片应进入编辑态');
+  card.querySelectorAll('.route-card-input').forEach(i=>{
+    assert.equal(i.disabled,false,'控件应解锁：'+(i.dataset.field||''));
+  });
+  assert.equal(btn.textContent,'取消','按钮应变成「取消」');
+  assert.ok(btn.classList.contains('on'),'按钮应带上 .on 状态类');
+  assert.equal(btn.attrs['aria-pressed'],'true','应同步 aria-pressed');
+});
+
+test('点「取消」→ 控件重新锁上、按钮变回「编辑」',async()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
+  const card=listEl.querySelectorAll('.route-card')[0];
+  const btn=card.querySelector('.route-card-edit-btn');
+  await click(btn);   // 编辑
+  await click(btn);   // 取消
+  assert.ok(!card.classList.contains('editing'),'应退出编辑态');
+  card.querySelectorAll('.route-card-input').forEach(i=>{
+    assert.equal(i.disabled,true,'控件应重新锁上：'+(i.dataset.field||''));
+  });
+  assert.equal(btn.textContent,'编辑','按钮应变回「编辑」');
+  assert.ok(!btn.classList.contains('on'),'不应再带 .on 状态类');
+});
+
+test('「取消」只退出编辑态，不回滚已保存的数据',async()=>{
+  const route={name:'原名',visits:[]};
+  const {listEl}=buildRouteCard([route]);
+  const card=listEl.querySelectorAll('.route-card')[0];
+  const btn=card.querySelector('.route-card-edit-btn');
+  const nameInput=card.querySelector('.route-card-input[data-field="name"]');
+  await click(btn);   // 进入编辑态
+  nameInput.value='新名';
+  for(const fn of (nameInput.handlers.change||[])) await fn({});
+  assert.equal(route.name,'新名','编辑态下失焦即存');
+  await click(btn);   // 取消
+  assert.equal(route.name,'新名','取消不应回滚已保存的数据');
+});
+
+test('查看态点星星是空操作（防误打分）',async()=>{
+  const route={name:'待打分',visits:[]};
+  const {listEl}=buildRouteCard([route]);
+  const card=listEl.querySelectorAll('.route-card')[0];
+  const stars=card.querySelector('.route-card-rating').querySelectorAll('.star');
+  await click(stars[3]);
+  assert.equal(route.rating,undefined,'查看态不应写入评分');
+  assert.ok(stars.every(s=>!s.classList.contains('active')),'查看态不应点亮任何星');
+});
+
+test('各卡编辑态互相独立',async()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE,{name:'第二条',visits:[]}]);
+  const cards=listEl.querySelectorAll('.route-card');
+  assert.equal(cards.length,2);
+  await click(cards[0].querySelector('.route-card-edit-btn'));
+  assert.ok(cards[0].classList.contains('editing'),'第一张卡应进入编辑态');
+  assert.ok(!cards[1].classList.contains('editing'),'第二张卡不应受影响');
+  assert.equal(cards[1].querySelectorAll('.route-card-input')[0].disabled,true,'第二张卡仍应只读');
+});
+
+test('查看态「+ 添加徒步经历」「删除路线」仍可点',()=>{
+  const {listEl}=buildRouteCard([SAMPLE_ROUTE]);
+  const card=listEl.querySelectorAll('.route-card')[0];
+  const btns=card.querySelectorAll('.route-summary-btn');
+  assert.equal(btns.length,2,'应有「+ 添加徒步经历」与「删除路线」两个按钮');
+  btns.forEach(b=>{
+    assert.notEqual(b.disabled,true,'这两个操作在查看态应保持可点');
+  });
+});
+
+test('新增路线后自动进入编辑态',async()=>{
+  const {listEl}=await buildAddAttraction();
+  const cards=listEl.querySelectorAll('.route-card');
+  assert.equal(cards.length,1,'应渲染出一张新卡');
+  const card=cards[0];
+  assert.ok(card.classList.contains('editing'),'新路线应自动进入编辑态');
+  const inputs=card.querySelectorAll('.route-card-input');
+  assert.equal(inputs.length,7);
+  inputs.forEach(i=>assert.equal(i.disabled,false,'新路线的控件应解锁'));
+  assert.equal(card.querySelector('.route-card-edit-btn').textContent,'取消','按钮应显示「取消」');
+});
+
+test('源码护栏：路线卡默认是查看态（防误输入的兜底）',()=>{
+  assert.ok(routeCardBlock.includes('setRouteCardEditMode(card,false)'),'渲染时应默认置为查看态');
+  assert.ok(routeCardBlock.includes('if(!card.classList.contains(\'editing\')) return;'),'星级点击应有编辑态守卫');
+});
+
+test('编辑态样式走项目变量，查看态控件置灰',()=>{
+  assert.ok(/\.route-card-edit-btn\{[^}]*border:1px solid var\(--line\)/.test(routeCardCss),'按钮描边应使用 var(--line)');
+  assert.ok(/\.route-card-edit-btn\{[^}]*border-radius:var\(--radius-xs\)/.test(routeCardCss),'按钮圆角应使用 var(--radius-xs)');
+  assert.ok(/\.route-card-edit-btn\{[^}]*color:var\(--muted\)/.test(routeCardCss),'按钮文字应使用 var(--muted)');
+  assert.ok(/\.route-card-head-main\{[^}]*flex:1 1 auto/.test(routeCardCss),'标题区应占满剩余宽度');
+  assert.ok(/\.route-card-input:disabled\{[^}]*cursor:not-allowed/.test(routeCardCss),'查看态输入框应禁用光标');
+  assert.ok(/\.route-card:not\(\.editing\) \.route-card-rating\{[^}]*pointer-events:none/.test(routeCardCss),'查看态星级应不可点');
+  assert.ok(/body\.light-theme \.route-card-edit-btn\{/.test(routeCardCss),'浅色主题应覆盖编辑按钮底色');
 });
 
 /* ---------- 配色：跟随项目变量与浅色主题 ---------- */

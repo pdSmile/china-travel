@@ -172,8 +172,8 @@
   body.light-theme .map-search-results,body.light-theme .modal-head,body.light-theme .icon-btn,
   body.light-theme .thumb,body.light-theme .empty,body.light-theme .view-tab.active,
   body.light-theme .city-card-thumb,body.light-theme .birth-month-field,
-  body.light-theme .birth-month-field input[type=month],body.light-theme .tag-add-row input[type=text],
-  body.light-theme .tag-add-row select,body.light-theme .timeline-empty,body.light-theme .timeline-modal,
+  body.light-theme .birth-month-field input[type=month],
+  body.light-theme .timeline-empty,body.light-theme .timeline-modal,
   body.light-theme .grid-card,body.light-theme .cover-section,body.light-theme .cover-preview-wrap,
   body.light-theme .attraction-item,body.light-theme .attraction-name-input,
   body.light-theme .attraction-date-input,body.light-theme .attraction-notes,
@@ -269,7 +269,6 @@
   body.light-theme .modal-foot{background:#fbfcfe;}
   body.light-theme .star-rating .star{color:#ddd;}
   body.light-theme .star-display .star.empty{color:#dbe3ec;}
-  body.light-theme .tag-add-row .btn{background:#ffffff;}
   /* ===== Neon Glow 按钮（Originkit 风格，含旋转炫光）===== */
   @property --neon-deg{
     syntax:'<angle>';
@@ -2746,58 +2745,11 @@
   }
   .birth-month-field .btn{padding:6px 12px;font-size:12px;}
   .att-info-value.is-multi-month{font-size:14px;line-height:1.45;text-align:center;}
-  /* 标签管理区 —— 放大间距与字号 */
-  /* 【弹窗尺寸放大】标签区上间距 16→18px，与景点区一致，三个模块分隔均匀 */
-  .tag-section{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);}
-  /* ===== 弹窗分区标题统一样式（照片管理/标签管理/景点管理 三标题字号、字重、颜色、对齐完全一致）===== */
+  /* ===== 弹窗分区标题统一样式（照片管理/景点管理 两标题字号、字重、颜色、对齐完全一致）===== */
   .section-title{
     font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.5px;
     margin:12px 0 8px 0;
   }
-  /* 兼容旧的 .ts-title（保留，避免其他地方引用断掉） */
-  .tag-section .ts-title{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:12px 0 8px 0;}
-  .tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:26px;}
-  .tag-list:empty::after{content:'还没有添加标签';font-size:13px;color:#aab3bf;}
-
-  /* ===== 弹窗标签管理区 3D 漂浮透视效果（复用城市卡片同款动画）===== */
-  /* 仅作用于弹窗内 .tag-section .tag-list 中的标签，不影响卡片标签 */
-  .tag-section .tag-list{
-    /* 透视容器：给内部标签提供 3D 空间 */
-    perspective:600px;
-  }
-  .tag-section .tag-list .tag-pill{
-    /* preserve-3d 让标签在 3D 空间中变换；覆盖原有 transition 增加倾斜过渡 */
-    transform-style:preserve-3d;
-    transition:transform .35s cubic-bezier(.2,.8,.3,1),box-shadow .35s ease;
-    will-change:transform;
-  }
-  /* 悬浮时标签向观察者方向浮起 + 柔和阴影加深 */
-  .tag-section .tag-list .tag-pill:hover{
-    transform:translateZ(20px) scale(1.05);
-    box-shadow:0 8px 20px rgba(0,0,0,.12);
-  }
-  /* 标签文字和删除叉号保持水平不扭曲：强制 flatten 子元素 */
-  .tag-section .tag-list .tag-pill > *{
-    transform:translateZ(0px);
-  }
-  .tag-pill .tag-del{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.10);  /* 14px→16px */
-    font-size:12px;line-height:1;cursor:pointer;border:none;color:inherit;padding:0;flex:0 0 auto;  /* 11px→12px */
-  }
-  .tag-pill .tag-del:hover{background:rgba(0,0,0,.22);}
-  .tag-add-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
-  /* 【弹窗尺寸缩小】标签输入框缩小 */
-  /* 【Bug修复】输入框加深色背景，白字深底可读（原无 background 导致白字白底看不见） */
-  .tag-add-row input[type=text]{
-    flex:1 1 120px;min-width:0;border:1px solid var(--line);border-radius:7px;
-    padding:6px 10px;font-size:13px;color:var(--ink);background:#080808;
-  }
-  .tag-add-row input[type=text]::placeholder{color:#6b7280;}
-  .tag-add-row select{
-    border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;color:var(--ink);background:#080808;
-  }
-  .tag-add-row .btn{padding:6px 12px;font-size:12px;background:#080808;color:var(--blue-d);}
 
   /* ===== 弯曲时间曲线时间轴样式 ===== */
   /* 迷你时间轴容器（右侧面板内） */
@@ -3534,6 +3486,9 @@
   }
   /* 路线卡片上的难度徽章容器 */
   .att-card-badge{margin:2px 0 6px;}
+  /* 路线卡片上的推荐指数（只读，5 颗星；颜色复用 .star-svg） */
+  .att-card-rating{margin:2px 0 6px;font-size:13px;display:flex;align-items:center;gap:2px;}
+  .att-card-rating .star-svg{text-shadow:0 1px 6px rgba(0,0,0,.85);}
   .att-card .route-metrics{color:rgba(245,240,230,.72);text-shadow:0 1px 6px rgba(0,0,0,.85);margin-bottom:4px;}
   .att-card .route-coord{color:rgba(245,240,230,.5);text-shadow:0 1px 6px rgba(0,0,0,.85);}
   .att-card-notes{
@@ -3685,6 +3640,17 @@
   .route-card-title{font-size:14px;font-weight:700;color:var(--ink);}
   .route-card-badge{flex:0 0 auto;}
   .route-card-metrics{font-size:12px;color:var(--muted);}
+  /* 路线卡头部：左侧标题区 + 右上角「编辑 / 取消」按钮 */
+  .route-card-head-main{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .route-card-edit-btn{
+    flex:0 0 auto;margin-left:auto;align-self:flex-start;
+    padding:4px 12px;border-radius:var(--radius-xs);cursor:pointer;
+    border:1px solid var(--line);background:rgba(255,255,255,.04);
+    color:var(--muted);font:inherit;font-size:12px;font-weight:600;line-height:1.4;
+    transition:border-color .2s ease,color .2s ease,background .2s ease;
+  }
+  .route-card-edit-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .route-card-edit-btn.on{border-color:var(--accent);color:var(--accent);background:var(--line-2);font-weight:700;}
   .route-card-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
   .route-card-row>label{flex:0 0 62px;font-size:12.5px;font-weight:600;color:var(--muted);}
   .route-card-grid{flex:1 1 auto;display:flex;gap:8px;flex-wrap:wrap;min-width:0;}
@@ -3697,6 +3663,14 @@
   .route-card-input:focus{outline:none;border-color:var(--accent);}
   .route-card-input option{background:var(--card);color:var(--ink);}
   .route-card-hint{flex:1 1 100%;font-size:11.5px;color:var(--muted);line-height:1.5;}
+  /* 路线卡推荐指数：5 颗可点星（颜色复用 .star-svg / .star-svg.inactive） */
+  .route-card-rating{display:inline-flex;align-items:center;gap:2px;font-size:16px;}
+  .route-card-rating .star{cursor:pointer;display:inline-flex;line-height:1;user-select:none;}
+  .route-card-rating .star:hover .star-svg{color:#f5c46a;}
+  /* 查看态：输入框 / 下拉框仍显示但置灰，且 disabled 不可聚焦 → 防误输入 */
+  .route-card-input:disabled{opacity:.72;color:var(--muted);cursor:not-allowed;}
+  /* 查看态：星级只读（pointer-events:none → 点不动、也不会 hover 高亮） */
+  .route-card:not(.editing) .route-card-rating{pointer-events:none;opacity:.8;}
   /* 路线数据三指标：每个框配一个常驻小标签（填了值标签也不会消失） */
   .route-metric-field{display:flex;flex-direction:column;gap:4px;flex:1 1 120px;min-width:112px;}
   .route-metric-field>.route-card-input{flex:0 0 auto;width:100%;}
@@ -3721,6 +3695,8 @@
   /* 浅色主题下输入框用纯白底（与 .att-edit-row input 同一口径） */
   body.light-theme .route-card-input{background:#ffffff;}
   body.light-theme .route-card-visits{background:rgba(0,0,0,.015);}
+  /* 浅色主题下按钮底色用 var(--line-2)（默认的 rgba(255,255,255,.04) 在白底上看不见） */
+  body.light-theme .route-card-edit-btn{background:var(--line-2);}
   /* ===== 经历下方的图片小图（最多 4 张，可点开预览该条经历的图片）===== */
   .route-card-visit-thumbs{flex:1 1 100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
   .route-card-visit-thumbs:empty{display:none;}
@@ -6096,20 +6072,6 @@ body.light-theme .dg-scrim { background: rgba(25, 48, 69, .42); }
           <span class="big">还没有照片</span>
           <span class="empty-tail">点击下方按钮，上传你在这里的旅行照片</span>
         </div>
-        <!-- 标签管理区 -->
-        <div class="tag-section">
-          <div class="section-title">标签管理</div>
-          <div class="tag-list" id="tagList"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tagInput" placeholder="输入标签，如：故宫、火锅" maxlength="12" />
-            <select id="tagCategory">
-              <option value="scenic">景点</option>
-              <option value="food">美食</option>
-              <option value="other">其他</option>
-            </select>
-            <button class="btn" id="tagAddBtn">添加</button>
-          </div>
-        </div>
         <!-- 徒步路线管理区 -->
         <div class="attraction-section">
           <div class="section-title">徒步路线</div>
@@ -7884,9 +7846,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     init(); // 启用 Variable Proximity 可变字体效果（Figtree + 动态颜色 + 发光）
   })();
   // 弹窗新增元素
-  const birthMonthField=$('birthMonthField'), birthMonthInput=$('birthMonthInput'), birthMonthSaveBtn=$('birthMonthSaveBtn'),
-        tagList=$('tagList'), tagInput=$('tagInput'), tagCategory=$('tagCategory'),
-        tagAddBtn=$('tagAddBtn');
+  const birthMonthField=$('birthMonthField'), birthMonthInput=$('birthMonthInput'), birthMonthSaveBtn=$('birthMonthSaveBtn');
   // 封面图 + 星级 + 景点
   const coverUploadBtn=$('coverUploadBtn'), coverFileInput=$('coverFileInput'),
         coverPreview=$('coverPreview'), coverPreviewWrap=$('coverPreviewWrap'), starRatingEl=$('starRating'),
@@ -9152,6 +9112,13 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     const n=Number(value);
     return Number.isFinite(n)?n:fallback;
   }
+  // 推荐指数归一：空值/非法值 → 0；超出 0-5 → 截断；小数四舍五入
+  function toRouteRating(value){
+    if(value===''||value==null) return 0;
+    const n=Number(value);
+    if(!Number.isFinite(n)) return 0;
+    return Math.max(0,Math.min(5,Math.round(n)));
+  }
   // 坐标归一：空值/越界/非法 → null（0,0 是合法但无意义的坐标，用 null 表示未填写）
   function toRouteCoord(value,min,max){
     if(value===''||value==null) return null;
@@ -9216,6 +9183,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     r.maxAltitude=toRouteNumber(r.maxAltitude,0);
     r.lng=toRouteCoord(r.lng,-180,180);
     r.lat=toRouteCoord(r.lat,-90,90);
+    r.rating=toRouteRating(r.rating);
     // ===== 旧结构迁移（幂等）：旧的一条记录同时是「路线 + 一次经历」 =====
     if(!Array.isArray(r.visits)) r.visits=[];
     const legacyDate=r.visitDate,legacyNotes=r.notes,legacyPhotos=r.photos;
@@ -10523,6 +10491,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         maxAltitude:route.maxAltitude||0,
         lng:route.lng==null?null:route.lng,
         lat:route.lat==null?null:route.lat,
+        rating:toRouteRating(route.rating),
         visits:(route.visits||[]).map(visit=>({
           id:visit.id,visitDate:visit.visitDate||'',notes:visit.notes||'',
           photos:(visit.photos||[]).map(photo=>({file:photo.file||'',name:photo.name||'',id:photo.id||'',
@@ -14974,6 +14943,15 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
         badge.innerHTML=routeDifficultyBadge(att.difficulty);
         text.appendChild(badge);
       }
+      // 推荐指数（只读）
+      const routeRating=toRouteRating(att.rating);
+      if(routeRating>0){
+        const ratingEl=document.createElement('div');
+        ratingEl.className='att-card-rating';
+        ratingEl.innerHTML=renderStars(routeRating);
+        ratingEl.title='推荐指数 '+routeRating+' 星';
+        text.appendChild(ratingEl);
+      }
       // 指标行：里程 / 爬升 / 最高海拔
       const metricsText=routeMetricsText(att);
       if(metricsText){
@@ -15094,6 +15072,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     else if(field==='distanceKm'||field==='elevationGain'||field==='maxAltitude') route[field]=toRouteNumber(value,0);
     else if(field==='lng') route.lng=toRouteCoord(value,-180,180);
     else if(field==='lat') route.lat=toRouteCoord(value,-90,90);
+    else if(field==='rating') route.rating=toRouteRating(value);
     else route[field]=value;
     await saveCityMeta(meta);
     refreshRouteViews(ctx,meta);
@@ -15179,10 +15158,9 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   }
   // 经历副本 → 城市相册条目的三级匹配：id → storagePath → dataUrl
   // （本地上传两侧共享 addPhoto 自增 id；云端恢复的副本没有 id，只有 storagePath；历史数据只有 dataUrl）
-  async function deleteRoutePhotoFromAlbum(cityKey,mediaCopy){
-    if(!cityKey||!mediaCopy) return false;
-    const photos=await getPhotosByCity(cityKey);
-    if(!photos.length) return false;
+  // 纯函数：只匹配不删库；单条删除与批量删除共用这一套规则
+  function matchAlbumPhoto(photos,mediaCopy){
+    if(!Array.isArray(photos)||!photos.length||!mediaCopy) return null;
     let victim=null;
     if(mediaCopy.id!=null){
       victim=photos.find(p=>String(p.id)===String(mediaCopy.id))||null;
@@ -15193,9 +15171,30 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     if(!victim&&mediaCopy.dataUrl){
       victim=photos.find(p=>p.dataUrl&&p.dataUrl===mediaCopy.dataUrl)||null;
     }
+    return victim;
+  }
+  // 删除单条经历照片对应的相册条目（复用同一套三级匹配规则）
+  async function deleteRoutePhotoFromAlbum(cityKey,mediaCopy){
+    if(!cityKey||!mediaCopy) return false;
+    const photos=await getPhotosByCity(cityKey);
+    if(!photos.length) return false;
+    const victim=matchAlbumPhoto(photos,mediaCopy);
     if(!victim) return false;
     await deletePhoto(victim.id);
     return true;
+  }
+  // 批量删除：一次读相册 → 逐个按同一套规则命中 → 去重后逐条删（返回删除条数）
+  async function deleteRoutePhotosFromAlbum(cityKey,mediaCopies){
+    if(!cityKey||!Array.isArray(mediaCopies)||!mediaCopies.length) return 0;
+    const photos=await getPhotosByCity(cityKey);
+    if(!photos.length) return 0;
+    const victimIds=[];
+    mediaCopies.forEach(copy=>{
+      const victim=matchAlbumPhoto(photos,copy);
+      if(victim&&victimIds.indexOf(victim.id)<0) victimIds.push(victim.id);
+    });
+    for(const id of victimIds) await deletePhoto(id);
+    return victimIds.length;
   }
   // 交换经历照片位置（拖拽排序）
   async function routeSwapPhotos(ctx,fromPi,toPi){
@@ -15357,9 +15356,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     modalCount.textContent='';
     thumbsGrid.innerHTML='';
     modalEmpty.style.display='none';
-    // 重置标签、封面、星级、徒步路线
-    tagList.innerHTML='';
-    tagInput.value='';
+    // 重置封面、星级、徒步路线
     coverPreviewWrap.style.display='none';
     coverPreview.src='';
     setStarRating(0);
@@ -15372,12 +15369,11 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     loadCityPhotos(city.cityKey);
     loadCityMeta(city.cityKey);
   }
-  // 加载城市元数据（出生年月+标签+封面+星级+简介+徒步路线）到弹窗
+  // 加载城市元数据（出生年月+封面+星级+简介+徒步路线）到弹窗
   async function loadCityMeta(cityKey){
     try{
       const meta=await getCityMeta(cityKey);
       if(birthMonthInput) birthMonthInput.value=meta.birthMonth||'';
-      renderTagList(meta.tags||[]);
       // 封面图
       if(meta.coverImage){
         coverPreview.src=meta.coverImage;
@@ -15427,6 +15423,19 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     if(badge) badge.innerHTML=routeDifficultyBadge(route.difficulty);
     const metrics=card.querySelector('.route-card-metrics');
     if(metrics) metrics.textContent=routeMetricsText(route);
+    // 推荐指数：按值点亮对应数量的星（两级查询，避免复合选择器）
+    const rbox=card.querySelector('.route-card-rating');
+    if(rbox){
+      const val=toRouteRating(route.rating);
+      rbox.dataset.value=String(val);
+      const stars=rbox.querySelectorAll('.star');
+      stars.forEach(s=>{
+        const on=parseInt(s.dataset.val,10)<=val;
+        s.classList.toggle('active',on);
+        const svg=s.querySelector('.star-svg');
+        if(svg) svg.classList.toggle('inactive',!on);
+      });
+    }
   }
   // 把一条路线填进路线卡表单
   function fillRouteCard(card,route,idx){
@@ -15443,6 +15452,32 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     set('lat',route.lat==null?'':route.lat);
     updateRouteCardDisplay(card,route,idx);
   }
+  // ===== 路线卡编辑态：查看态下输入框与星级只读，防误触误输 =====
+  // 编辑态由 DOM 上的 .editing 类承载（不存模块级状态 → 整表重绘后自动回到查看态，
+  // 也避免删路线后下标错位）。on=true 编辑态，on=false 查看态
+  function setRouteCardEditMode(card,on){
+    if(!card) return false;
+    const editing=!!on;
+    card.classList.toggle('editing',editing);
+    card.querySelectorAll('.route-card-input').forEach(input=>{
+      // 退出编辑态时先移开焦点（disabled 元素在部分浏览器仍短暂持有焦点）
+      if(!editing&&input.blur&&document.activeElement===input) input.blur();
+      input.disabled=!editing;
+    });
+    const btn=card.querySelector('.route-card-edit-btn');
+    if(btn){
+      btn.textContent=editing?'取消':'编辑';
+      btn.title=editing?'退出编辑（已保存的数据不会回滚）':'编辑这条路线（解锁名称 / 难度 / 路线数据 / 坐标 / 推荐指数）';
+      btn.classList.toggle('on',editing);
+      btn.setAttribute('aria-pressed',editing?'true':'false');
+    }
+    return editing;
+  }
+  // 切换某张路线卡的编辑态
+  function toggleRouteCardEditMode(card){
+    if(!card) return false;
+    return setRouteCardEditMode(card,!card.classList.contains('editing'));
+  }
   // 渲染徒步路线列表（城市弹窗内：路线字段就地编辑 + 每条路线下的经历列表）
   function renderAttractions(attractions){
     attractionListEl.innerHTML='';
@@ -15457,16 +15492,25 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       const card=document.createElement('div');
       card.className='route-card';
       card.dataset.routeIdx=String(idx);
-      // ===== 头部：路线名 + 难度徽章 + 指标 =====
+      // ===== 头部：路线名 + 难度徽章 + 指标 + 右上角「编辑 / 取消」按钮 =====
       const head=document.createElement('div');
       head.className='route-card-head';
+      const headMain=document.createElement('div');
+      headMain.className='route-card-head-main';
       const titleEl=document.createElement('span');
       titleEl.className='route-card-title';
       const badgeEl=document.createElement('span');
       badgeEl.className='route-card-badge';
       const metricsEl=document.createElement('span');
       metricsEl.className='route-card-metrics';
-      head.append(titleEl,badgeEl,metricsEl);
+      headMain.append(titleEl,badgeEl,metricsEl);
+      const editBtn=document.createElement('button');
+      editBtn.type='button';
+      editBtn.className='route-card-edit-btn';
+      editBtn.textContent='编辑';
+      editBtn.title='编辑这条路线（解锁名称 / 难度 / 路线数据 / 坐标 / 推荐指数）';
+      editBtn.addEventListener('click',()=>toggleRouteCardEditMode(card));
+      head.append(headMain,editBtn);
       card.appendChild(head);
       // ===== 路线名称 =====
       const nameRow=routeCardRow('路线名称');
@@ -15484,6 +15528,31 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       });
       diffRow.appendChild(diffSelect);
       card.appendChild(diffRow);
+      // ===== 推荐指数（0-5 星，可点击；再次点击同一颗清零）=====
+      const ratingRow=routeCardRow('推荐指数');
+      const ratingBox=document.createElement('div');
+      ratingBox.className='route-card-rating';
+      ratingBox.dataset.routeIdx=String(idx);
+      for(let v=1;v<=5;v++){
+        const star=document.createElement('span');
+        star.className='star';
+        star.dataset.val=String(v);
+        star.innerHTML=starSvgHTML(false);
+        star.title='推荐 '+v+' 星';
+        star.addEventListener('click',async()=>{
+          // 查看态下星级只读：必须先点右上角「编辑」才允许打分
+          if(!card.classList.contains('editing')) return;
+          const n=parseInt(star.dataset.val,10);
+          const cur=parseInt(ratingBox.dataset.value,10)||0;
+          await onRouteCardRatingClick(idx,(cur===n)?0:n);
+        });
+        ratingBox.appendChild(star);
+      }
+      const ratingHint=document.createElement('div');
+      ratingHint.className='route-card-hint';
+      ratingHint.textContent='给这条路线打 1-5 星推荐；再次点击同一颗星可清零。';
+      ratingRow.append(ratingBox,ratingHint);
+      card.appendChild(ratingRow);
       // ===== 路线数据 =====
       const metricRow=routeCardRow('路线数据');
       const metricGrid=document.createElement('div');
@@ -15551,10 +15620,22 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
       card.querySelectorAll('.route-card-input').forEach(input=>{
         input.addEventListener('change',()=>onRouteCardFieldChange(idx,input.dataset.field,input));
       });
+      // ===== 默认查看态：输入框与星级只读（防误输入）=====
+      setRouteCardEditMode(card,false);
       attractionListEl.appendChild(card);
       fillRouteCard(card,route,idx);
       renderRouteVisits(idx,route);
     });
+  }
+  // 路线推荐指数：点击星星 → 落盘 → 局部刷新（再次点击同一颗 → 清零）
+  async function onRouteCardRatingClick(idx,val){
+    if(!currentCity) return;
+    const saved=await saveRouteField({cityKey:currentCity.cityKey,idx,anchor:'modal'},'rating',val);
+    if(!saved) return;
+    const route=saved.attractions&&saved.attractions[idx];
+    if(!route) return;
+    const card=attractionListEl.querySelector('.route-card[data-route-idx="'+idx+'"]');
+    updateRouteCardDisplay(card,route,idx);
   }
   // 路线卡字段变更：落盘 → 回写归一化结果 → 局部刷新显示
   async function onRouteCardFieldChange(idx,field,input){
@@ -15659,7 +15740,7 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     if(!Array.isArray(meta.attractions)) meta.attractions=[];
     const coords=defaultRouteCoords(city.cityKey);
     const route=normalizeRoute({name:'',difficulty:'',
-      distanceKm:0,elevationGain:0,maxAltitude:0,lng:coords.lng,lat:coords.lat,visits:[]});
+      distanceKm:0,elevationGain:0,maxAltitude:0,lng:coords.lng,lat:coords.lat,rating:0,visits:[]});
     meta.attractions.push(route);
     await saveCityMeta(meta);
     return route;
@@ -15669,8 +15750,17 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     if(!currentCity) return;
     await addRouteToCity(currentCity);
     const meta=await getCityMeta(currentCity.cityKey);
-    renderAttractions(meta.attractions||[]);
+    const routes=meta.attractions||[];
+    renderAttractions(routes);
     renderCityCards();
+    // 新路线在数组末尾 → 定位到最后一张卡并进入编辑态（省去再点一次「编辑」）
+    const newIdx=routes.length-1;
+    const newCard=attractionListEl.querySelector('.route-card[data-route-idx="'+newIdx+'"]');
+    if(newCard){
+      setRouteCardEditMode(newCard,true);
+      const nameInput=newCard.querySelector('.route-card-input[data-field="name"]');
+      if(nameInput&&nameInput.focus) nameInput.focus();
+    }
   }
   // 添加一条徒步经历
   async function addVisit(routeIdx){
@@ -15696,14 +15786,34 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     renderCityCards();
   }
   // 删除徒步路线
+  // 连带删除该路线在相册里的对应图片（照片/视频都删）
   async function deleteAttraction(idx){
     if(!currentCity) return;
     const meta=await getCityMeta(currentCity.cityKey);
-    if(!meta.attractions) return;
-    meta.attractions.splice(idx,1);
-    await saveCityMeta(meta);
-    renderAttractions(meta.attractions);
-    renderCityCards();
+    if(!meta.attractions||!meta.attractions[idx]) return;
+    const route=meta.attractions[idx];
+    const copies=routeVisitPhotos(route);
+    // 二次确认：删路线会连带删相册图片，不可恢复
+    if(!confirm('确定删除路线「'+(route.name||'未命名路线')+'」吗？'+
+      (copies.length?('\n\n将同时删除相册中的 '+copies.length+' 张照片/视频。'):'')+
+      '\n\n此操作不可恢复。')) return;
+    try{
+      // 1. 先删相册条目（一次读相册 → 批量匹配 → 批量删除）
+      if(copies.length) await deleteRoutePhotosFromAlbum(currentCity.cityKey,copies);
+      // 2. 再删路线本身
+      meta.attractions.splice(idx,1);
+      await saveCityMeta(meta);
+      // 3. 刷新视图
+      renderAttractions(meta.attractions);
+      renderCityCards();
+      // 4. 同步刷新相册管理网格 + 全局统计（原先缺失）
+      await loadCityPhotos(currentCity.cityKey);
+      await refreshState();
+      toast('已删除路线'+(copies.length?('及 '+copies.length+' 张相册图片'):''));
+    }catch(e){
+      console.error(e);
+      toast('删除路线失败：'+(e.message||e),true);
+    }
   }
   // 上传封面图
   async function uploadCover(file){
@@ -15716,67 +15826,6 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
     await saveCityMeta(meta);
     coverPreview.src=dataUrl;
     coverPreviewWrap.style.display='block';
-    renderCityCards();
-  }
-  // 渲染标签列表到弹窗
-  function renderTagList(tags){
-    tagList.innerHTML='';
-    const catNames={scenic:'景',food:'食',other:'他'};
-    tags.forEach((t,i)=>{
-      const pill=document.createElement('span');
-      pill.className='tag-pill '+(t.category||'other');
-      pill.textContent=t.text;
-      const del=document.createElement('button');
-      del.className='tag-del'; del.innerHTML='&times;'; del.title='删除标签';
-      del.addEventListener('click',()=>removeTag(i));
-      pill.appendChild(del);
-      // ===== 3D 鼠标跟随倾斜效果（与城市卡片同款交互）=====
-      // 鼠标在标签上移动时，根据鼠标相对标签中心位置计算 rotateX/rotateY
-      // 仅标签色块做 3D 倾斜，文字/叉号保持水平清晰
-      let tag3dRAF=false;
-      pill.addEventListener('mousemove',e=>{
-        if(tag3dRAF) return;
-        tag3dRAF=true;
-        requestAnimationFrame(()=>{
-          tag3dRAF=false;
-          const rect=pill.getBoundingClientRect();
-          const px=(e.clientX-rect.left)/rect.width-0.5;
-          const py=(e.clientY-rect.top)/rect.height-0.5;
-          // 倾斜幅度较小（标签尺寸小），浮起 + 倾斜同步应用
-          const rotY=px*16;
-          const rotX=-py*16;
-          pill.style.transform='rotateX('+rotX+'deg) rotateY('+rotY+'deg) translateZ(20px) scale(1.05)';
-        });
-      });
-      // 鼠标移出：平滑回弹复位
-      pill.addEventListener('mouseleave',()=>{
-        pill.style.transform='';
-      });
-      tagList.appendChild(pill);
-    });
-  }
-  // 添加标签
-  async function addTag(){
-    if(!currentCity) return;
-    const text=tagInput.value.trim();
-    if(!text) return;
-    const cat=tagCategory.value;
-    const meta=await getCityMeta(currentCity.cityKey);
-    if(!meta.tags) meta.tags=[];
-    meta.tags.push({text,category:cat});
-    await saveCityMeta(meta);
-    renderTagList(meta.tags);
-    tagInput.value='';
-    renderCityCards();
-  }
-  // 删除标签
-  async function removeTag(idx){
-    if(!currentCity) return;
-    const meta=await getCityMeta(currentCity.cityKey);
-    if(!meta.tags) return;
-    meta.tags.splice(idx,1);
-    await saveCityMeta(meta);
-    renderTagList(meta.tags);
     renderCityCards();
   }
   // 保存家乡出生年月（与徒步路线完全独立）
@@ -17818,9 +17867,6 @@ const v=window.__CobePhenomenon;var M="phi",c="theta",R="mapSamples",O="mapBrigh
   lightbox.addEventListener('click',closeLightbox);
   // 家乡出生年月
   birthMonthSaveBtn.addEventListener('click',saveBirthMonth);
-  // 标签添加
-  tagAddBtn.addEventListener('click',addTag);
-  tagInput.addEventListener('keydown',e=>{ if(e.key==='Enter') addTag(); });
   // 星级评分
   starRatingEl.querySelectorAll('.star').forEach(s=>{
     s.addEventListener('click',async ()=>{

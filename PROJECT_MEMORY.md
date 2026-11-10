@@ -113,23 +113,24 @@
 
 ### 编辑面：城市弹窗（路线级） + 经历浮层（经历级）
 
-两个编辑面分工明确，**城市编辑弹窗的原有结构保持不变**：
+两个编辑面分工明确。**城市编辑弹窗结构：2026-11-05 起删掉了「标签管理」分区**（只删编辑 UI，`meta.tags` 数据与全部下游消费者保留；城市级「推荐指数」「城市简介」不动）：
 
 | 编辑面 | 内容 | 载体 |
 |---|---|---|
-| 城市编辑弹窗 `#modalOverlay` | 原结构全部保留（城市封面 / 推荐指数 / 城市简介 / 家乡出生年月 / 相册管理 / 标签管理 / 徒步路线）；「徒步路线」区块内每条路线一张 `.route-card`，**就地行内编辑** 7 个路线级字段（名称 / 难度 / 里程 / 爬升 / 最高海拔 / 经度 / 纬度），`change` 即存 | `renderAttractions()` + `saveRouteField()` |
+| 城市编辑弹窗 `#modalOverlay` | 城市封面 / **城市级**推荐指数 / 城市简介 / 家乡出生年月 / 相册管理 / 徒步路线（**「标签管理」已删除**）；「徒步路线」区块内每条路线一张 `.route-card`，**就地行内编辑** 8 个路线级字段（名称 / 难度 / **推荐指数（0-5 星）** / 里程 / 爬升 / 最高海拔 / 经度 / 纬度），`change` 即存；**2026-11-07 起默认查看态，需点右上角「编辑」才可输入** | `renderAttractions()` + `saveRouteField()` |
 | 经历编辑浮层 `#attEditOverlay` | **只剩三项**：游玩日期 / 路线备注 / 路线照片 | 静态表单 + `openVisitEditor()` |
 
 | 项 | 口径 |
 |------|------|
 | 浮层结构 | 表单写死在 `index.html`（`#attEditOverlay` 内），字段 id 固定：`routeEditorTitle` / `routeEditorClose` / `routeDateInput` / `routeNotesInput` / `routeEditorThumbs` / `routeUploadBtn` / `routePhotoInput`（隐藏的 file input）。路线级的 7 个 id（`routeNameInput` / `routeDifficultySelect` / `routeDistanceInput` / `routeElevationInput` / `routeAltitudeInput` / `routeLngInput` / `routeLatInput`）**已从浮层移除** |
 | 职责拆分 | `openVisitEditor(cityKey,idx,visitIdx,anchor)` 只做「读数据 → `fillVisitEditor()` 填值 → `renderRouteEditorPhotos()` 画缩略图 → 显示浮层」；`onVisitFieldChange(field)` 负责单字段「读 DOM → `saveVisitField()` 落盘 → 回写归一化结果」；`bindRouteEditorEvents()` **只在初始化时调用一次**，避免重复打开叠加监听 |
-| 路线卡 | `renderAttractions()` 渲染 `.route-card[data-route-idx]`：路线名称 input / 难度下拉（选项由 `ROUTE_DIFFICULTIES` 生成）/ 三个指标 number input（**各带常驻小标签 + `title` 说明 + 行末解释文案**）/ 经纬度两个 number input / 难度徽章 / 指标 / 坐标提示 / 经历列表（日期 · 备注 · 媒体徽章 · 编辑 · 删除）/ `[+ 添加徒步经历]` / `[删除路线]`；保存后**只更新受影响的显示节点**，不整表重绘（避免其它未失焦输入框被清空） |
-| 增删 | `addRouteToCity(city)` 新建路线（坐标预填城市质心）；`addVisit(routeIdx)` / `deleteVisit(routeIdx,visitIdx)` / `deleteAttraction(idx)` |
+| 路线卡 | `renderAttractions()` 渲染 `.route-card[data-route-idx]`：**头部 = `.route-card-head-main`（路线名 / 难度徽章 / 指标）+ 右上角 `.route-card-edit-btn`「编辑 / 取消」**；路线名称 input / 难度下拉（选项由 `ROUTE_DIFFICULTIES` 生成）/ **推荐指数 5 颗可点星 `.route-card-rating`（再点同一颗清零）** / 三个指标 number input（**各带常驻小标签 + `title` 说明 + 行末解释文案**）/ 经纬度两个 number input / 难度徽章 / 指标 / 坐标提示 / 经历列表（日期 · 备注 · 媒体徽章 · 编辑 · 删除）/ `[+ 添加徒步经历]` / `[删除路线]`；保存后**只更新受影响的显示节点**，不整表重绘（避免其它未失焦输入框被清空） |
+| **查看态 / 编辑态** | **2026-11-07 起**：每张路线卡默认**查看态** —— 7 个路线级控件 `disabled`（置灰但仍可读、且移出 Tab 顺序）、星级 `pointer-events:none` + JS 守卫（点不动）；`[+ 添加徒步经历]` / `[删除路线]` **仍可点**。点右上角「编辑」→ 按钮变「取消」、控件解锁、星级可点；点「取消」→ **只退出编辑态，不回滚已保存的数据**。编辑态由 **DOM 上的 `.editing` 类**承载（不存模块级下标集合 → 整表重绘后自动回查看态，也避免删路线后下标错位）；`setRouteCardEditMode(card,on)` / `toggleRouteCardEditMode(card)` 两个 helper 落在 `routeCardHelpersBlock` 切片内。**新增路线自动进入编辑态并聚焦名称框** |
+| 增删 | `addRouteToCity(city)` 新建路线（坐标预填城市质心，`rating:0`）；`addVisit(routeIdx)` / `deleteVisit(routeIdx,visitIdx)` / `deleteAttraction(idx)`（**二次确认 → 连带删相册图片 → 删路线 → 刷新相册网格与全局统计**，2026-11-05 起） |
 | 照片区 | 缩略图由 JS 插到**静态**上传按钮之前（`insertBefore(t, routeUploadBtn)`），上传/删除/换序后只重绘缩略图，不再重建整个面板 |
-| 配色 | 全部走项目变量：`var(--card)` / `var(--line)` / `var(--line-2)` / `var(--ink)` / `var(--muted)` / `var(--accent)` / `var(--radius)` / `var(--radius-sm)` / `var(--shadow)`；浅色主题另加 `body.light-theme .route-card-input{background:#ffffff}` 与 `.route-card-visits{background:rgba(0,0,0,.015)}`；`.route-card-input option{background:var(--card);color:var(--ink)}` 保证深色主题下拉可读 |
+| 配色 | 全部走项目变量：`var(--card)` / `var(--line)` / `var(--line-2)` / `var(--ink)` / `var(--muted)` / `var(--accent)` / `var(--radius)` / `var(--radius-sm)` / `var(--radius-xs)` / `var(--shadow)`；浅色主题另加 `body.light-theme .route-card-input{background:#ffffff}`、`.route-card-visits{background:rgba(0,0,0,.015)}`、`.route-card-edit-btn{background:var(--line-2)}`；`.route-card-input option{background:var(--card);color:var(--ink)}` 保证深色主题下拉可读 |
 | 未跟随主题的部分 | 反馈弹窗 `.feedback-*`、账号弹窗 `.auth-*/.account-*` 仍是硬编码深色；城市详情页 `.att-detail-*` 是刻意保持深色的沉浸式照片页 |
-| 护栏 | `tests/route-editor-static.spec.cjs`（19 项）：静态 id 齐全、路线级 id 已移除、浮层只剩三项、`openVisitEditor` 不再建表单、事件只有一个绑定点、配色变量化、难度选项与常量一致，并用极简 DOM 桩跑通填值/回写/照片区逻辑 |
+| 护栏 | `tests/route-editor-static.spec.cjs`（**42 项**）：静态 id 齐全、路线级 id 已移除、浮层只剩三项、`openVisitEditor` 不再建表单、事件只有一个绑定点、配色变量化、难度选项与常量一致、**推荐指数 5 颗星的点亮/落盘/清零（须先进编辑态）**、**路线卡查看态/编辑态切换（12 项，2026-11-07 新增）**，并用极简 DOM 桩跑通填值/回写/照片区/编辑态逻辑 |
 
 ### 列表口径（城市名弱化标签 + 卡内两行制路线行）
 
@@ -666,3 +667,102 @@ npx http-server -p 8765
 - 已通过章节布局源码检查与 `git diff --check`；历史回归测试文件当前缺失，未声称其通过。
 
 *本节更新时间：2026-09-30*
+
+## 十四、2026-11-05 删路线连带删相册图 / 删除标签管理 / 路线推荐指数
+
+三项需求一次性落地，完整流水账见 `项目交接文档.md` §0.41（含逐行改动点、边界表、测试清单）。
+
+### 14.1 需求一：删徒步路线连带删相册图片
+
+- **新增** `matchAlbumPhoto(photos, mediaCopy)`（纯函数）：副本 → 相册条目的**三级匹配 `id → storagePath → dataUrl`**，单条删与批量删共用这一套规则。
+- **新增** `deleteRoutePhotosFromAlbum(cityKey, mediaCopies)`：一次读相册 → 逐个命中 → 去重 → 逐条删（避免 N 张照片 N 次 IndexedDB 读事务）。
+- **改造** `deleteRoutePhotoFromAlbum`：改为薄封装（返回值语义逐字不变，旧用例继续通过）。
+- **改造** `deleteAttraction(idx)`：`confirm()` 二次确认（写明连带删除张数）→ 先删相册 → 再删路线 → `renderAttractions` / `renderCityCards` / **`loadCityPhotos`（新增，原先缺失）** / **`refreshState`（新增，原先缺失）** → toast。相册删除失败则报错且**不删路线**。
+- **绝不误删**：只遍历该路线 `visits[].photos[]` 的副本清单；未挂任何路线的相册图片不动。
+
+### 14.2 需求二：删除城市编辑弹窗的「标签管理」
+
+- 删除：`.tag-section` DOM 整块、`tagList`/`tagInput`/`tagCategory`/`tagAddBtn` 元素引用与事件、`renderTagList`/`addTag`/`removeTag` 三个函数、`loadCityMeta` 与 `openCityModal` 里的两处调用、`.tag-section`/`.tag-list`/`.tag-pill .tag-del`/`.tag-add-row` 系列 CSS + 浅色主题覆盖。
+- **保留**：`meta.tags` **数据**与全部下游消费者（城市卡 / 网格卡 / 省份地图卡 / 足迹卡 / 点评发布 / 公开主页 / Supabase 同步 / 资料文件夹导出导入 / `hasLocalTravelData`）；`.tag-pill` 基础样式；城市级「推荐指数」与「城市简介」。
+- 版式不受影响：徒步路线区与相册管理之间的虚线分隔来自 `.attraction-section` 自带的 `border-top`，与 `.tag-section` 无关。
+
+### 14.3 需求三：徒步路线推荐指数（0-5 星）
+
+- 字段 `rating`；归一函数 `toRouteRating(value)`（空/非法→0，超界截断，小数四舍五入）放在 `toRouteNumber` 之后 → 落在 `modelBlock` 切片内，测试无需改 deps。
+- 落点：`normalizeRoute` / `saveRouteField` / `addRouteToCity`（初值 0）/ **资料文件夹导出白名单**（不加会静默丢字段）/ 导入（`normalizeCityMeta` 自动归一，无需改）。
+- UI：城市弹窗路线卡新增「推荐指数」行（难度行之后、路线数据行之前），5 颗可点星，**再次点击同一颗清零**；`updateRouteCardDisplay` 负责点亮（`fillRouteCard` 末尾已调 → 回填自动生效）；详情页路线卡显示只读星级（`.att-card-rating`，`rating>0` 才渲染）。
+- 配色复用既有 `.star-svg` / `.star-svg.inactive` 体系（深浅主题自动跟随），只新增尺寸与指针样式。
+- **云同步无需改 SQL**：`city_reviews.attractions` / `public_profiles.attractions` / `travel_snapshots.data` 均为 jsonb。
+- 范围限制：**不给城市卡路线行加星级**（`city-card-route-list.spec.cjs` 已断言该行内容）；**不改公开投影** `normalizePublicRoutes`。
+
+### 14.4 测试与验证
+
+| spec | 结果 |
+|---|---|
+| `tests/route-stats.spec.cjs` | 28/28（新增推荐指数归一断言） |
+| `tests/route-editor-static.spec.cjs` | 30/30（新增 6 项；DOM 桩升级为**可记录状态的 `classList`**） |
+| `tests/route-photo-album-sync.spec.cjs` | 23/23（新增 8 项；新增 `deleteRouteBlock` 切片） |
+| `tests/province-visit-cards.spec.cjs` | 20/20（无需修改） |
+| `tests/city-card-route-list.spec.cjs` | 19/19（无需修改） |
+| `tests/visit-thumb-row.spec.cjs` | 10/10（无需修改） |
+
+- 非浏览器全量回归：**185 通过 / 0 失败 / 3 跳过**（基线 170/0/3，新增 15 项）。
+- `git diff --check` 无空白错误；内联 `<script>` 解析 #1–#4/#6/#7 通过（#5 是既有的 globe.gl `import()` 报错，`HEAD` 同样报错）。
+- 已知边界：`deleteVisit`（删单条经历）仍留相册孤儿；同一副本跨路线共用时删一条会让另一条裂图；相册 `order` 空洞不重排。
+
+*本节更新时间：2026-11-05*
+
+## 十五、2026-11-07 徒步路线卡「编辑 / 取消」按钮 + 查看态防误输入
+
+### 15.1 需求原文
+
+> 添加徒步路线后，名称、路线数据、 坐标等可以随意改变，这样在用户查看时，可能会不小心点击或者输出错误，在每个徒步路线的右上角怎么编辑/取消 按钮，只有在编辑状态时，才能输入，防止用户误输入
+
+### 15.2 已确认口径（AskUserQuestion）
+
+| # | 决策 | 说明 |
+|---|---|---|
+| D1 | 「取消」= **只退出编辑模式** | 保留现有「失焦即存」；取消**不回滚**已保存的值 |
+| D2 | **只锁输入框 + 星级** | `[+ 添加徒步经历]` / `[删除路线]` 在查看态**仍可点** |
+| D3 | 查看态**照常显示但置灰** | 用 `disabled`（不是 `readonly`，`<select>` 不支持 readonly），不隐藏 |
+| D4 | **新增路线后自动进入编辑态** | 其余路线一律查看态 |
+
+### 15.3 关键设计：编辑态存在 DOM 上，不用模块级状态
+
+- **编辑态由路线卡上的 `.editing` class 承载**，不用模块级 `Set<index>`：删掉一条路线后，后面所有下标会整体前移 → 集合里的下标全错位。
+- DOM class 天然跟随重绘：`renderAttractions` 有 4 个整表重绘点（`loadCityMeta` / `addAttraction` / `deleteAttraction` / 删相册照片后），重绘后新卡没有 `.editing` → 自动回到查看态，**无需任何清理逻辑**。
+- **字段级改动（`change` 事件即存）不会丢编辑态**：`refreshRouteViews`（index.html:15077-15086）在 `anchor==='modal'` 时**只重绘经历列表** `renderRouteVisits(ctx.idx, ...)`，**不整表重绘** `renderAttractions` → 卡片 DOM 不被重建。
+
+### 15.4 生产改动（`index.html`，6 处）
+
+| # | 位置 | 改动 |
+|---|---|---|
+| C1 | 15438-15463（`routeCardHelpersBlock` 切片内） | 新增 `setRouteCardEditMode(card,on)` / `toggleRouteCardEditMode(card)`：切 `.editing` 类 → 7 个 `.route-card-input` 的 `disabled` → 按钮文案/`.on`/`aria-pressed` |
+| C2 | 15478-15497 | 头部重构：新增 `.route-card-head-main` 包裹标题/徽章/指标 + 右上角 `.route-card-edit-btn`「编辑 / 取消」 |
+| C3 | 15525-15531 | 星级点击加守卫 `if(!card.classList.contains('editing')) return;` |
+| C4 | 15606-15608 | `setRouteCardEditMode(card,false)` → 卡片默认查看态 |
+| C5 | 15731-15747 | `addAttraction` 定位最后一张卡 → 自动进编辑态 → 聚焦名称框 |
+| C6 | 3643-3653 / 3670-3673 / 3698-3699（CSS） | `.route-card-head-main`、`.route-card-edit-btn`（含 `.on` / `:hover`）、`.route-card-input:disabled{opacity:.72;cursor:not-allowed}`、`.route-card:not(.editing) .route-card-rating{pointer-events:none}`、浅色主题 `.route-card-edit-btn{background:var(--line-2)}` |
+
+**C2 为什么加 `.route-card-head-main` 包裹层**：`.route-card-head` 是 `display:flex;flex-wrap:wrap`，不包裹的话按钮会和标题抢同一行空间 → 窄卡片里按钮换行到第二行。标题/徽章/指标包进 `headMain`（`flex:1 1 auto;min-width:0`），按钮作为兄弟节点 `flex:0 0 auto;margin-left:auto` → 永远贴右上角、且不换行。
+`updateRouteCardDisplay` 里的 `card.querySelector('.route-card-title')` 是后代查找 → 加了包裹层仍能取到。
+
+**C5 为什么用 `routes.length-1`**：`renderAttractions` 用的是数组下标，不是 `addRouteToCity` 的返回值对象。
+
+### 15.5 已知边界（本次不处理）
+
+- 「取消」**不回滚**已保存的数据（D1 明确要求）。
+- 删除某条路线后，**其它卡片的编辑态会被重置**为查看态（整表重绘的副作用）。
+- 徒步**经历**行（`visits`）不在路线卡上就地编辑，仍走独立经历浮层 → 本次不动。
+- 查看态用 `disabled` 而非 `readonly`：`<select>` 不支持 `readonly`；`disabled` 同时把控件移出 Tab 顺序，额外防误触。
+
+### 15.6 测试与验证
+
+- `tests/route-editor-static.spec.cjs`：**30 → 42 项**（新增 12 项、改写 1 项星级用例）。
+  - 新增切片 `addRouteBlock`（`// 添加徒步路线` → `// 添加一条徒步经历`）+ 新增 `buildAddAttraction()` 跑真实「添加路线」全流程。
+  - 抽出共享 deps `routeCardDeps(listEl,meta)`（`buildRouteCard` 与 `buildAddAttraction` 共用）。
+- 非浏览器全量回归：**197 通过 / 0 失败 / 3 跳过**（基线 185/0/3，新增 12 项）。
+- `git diff --check` 无空白错误；内联 `<script>` 解析 #1–#4/#6/#7 通过（#5 是既有的 globe.gl `import()` 报错，`HEAD` 同样报错）。
+- 作用域核查：169 行新 JS 全部落在同一个 `<script>` 块（7627-21130）；`setRouteCardEditMode` 定义于 15458、使用于 15479 / 15624 / 15760 → 同块 ✓。
+
+*本节更新时间：2026-11-07*
